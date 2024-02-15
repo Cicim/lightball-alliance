@@ -56,8 +56,10 @@ dependencies {
   implementation("androidx.compose.ui:ui-graphics")
   implementation("androidx.compose.ui:ui-tooling-preview")
   implementation("androidx.compose.material3:material3")
-  implementation("io.ktor:ktor-client-android:1.6.4")
-  implementation("io.ktor:ktor-client-websockets:1.6.4")
+  implementation("io.ktor:ktor-client-android:2.3.8")
+  implementation("io.ktor:ktor-client-core:2.3.8")
+  implementation("io.ktor:ktor-client-websockets:2.3.8")
+  implementation("io.ktor:ktor-client-cio:2.3.8")
 
   testImplementation("junit:junit:4.13.2")
 

@@ -6,6 +6,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -26,6 +27,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.sensorsexample2.ui.theme.SensorsExample2Theme
+import io.ktor.websocket.readText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
@@ -34,7 +39,11 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   private val rotationMatrix = FloatArray(9)
   private val orientationAngles = FloatArray(3)
 
-  private val webSocketClient = WebSocketClient("ws://localhost:8080/ws")
+  private val webSocketClient = WebSocketClient(
+    host = "10.0.2.2",
+    port = 8080,
+    path = "/ws"
+  )
 
   private val orientationViewModel: OrientationViewModel by viewModels()
 
@@ -52,8 +61,12 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           SensorData(orientationViewModel)
           ConnectButtons(
-            onClickConnect = { webSocketClient.connect(this) },
-            onClickDisconnect = { webSocketClient.disconnect() }
+            onClickConnect = {
+              GlobalScope.launch(Dispatchers.Main) {
+                webSocketClient.connect(this@MainActivity)
+              }
+            },
+            onClickDisconnect = { webSocketClient.disconnect(this@MainActivity) }
           )
         }
       }
@@ -148,14 +161,17 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onConnected() {
     // Handle connection
+    Log.d("WebSocketClient", ">>>Connected!")
   }
 
   override fun onMessage(message: String) {
     // Handle received message
+    Log.d("WebSocketClient", ">Received: $message")
   }
 
   override fun onDisconnected() {
     // Handle disconnection
+    Log.d("WebSocketClient", ">>>Disconnected!")
   }
 }
 
