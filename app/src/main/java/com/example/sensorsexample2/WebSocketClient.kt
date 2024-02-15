@@ -8,8 +8,7 @@ import io.ktor.client.plugins.websocket.ws
 import io.ktor.http.HttpMethod
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class WebSocketClient(private val host: String, private val port: Int, private val path: String) {
 
@@ -19,9 +18,9 @@ class WebSocketClient(private val host: String, private val port: Int, private v
     }
   }
 
-  suspend fun connect(listener: WebSocketListener) {
+  fun connect(listener: WebSocketListener) {
     Log.d("WebSocketClient", ">>>Connecting to $host:$port$path")
-
+    runBlocking {
       client.ws(
         method = HttpMethod.Get,
         host = host,
@@ -30,19 +29,37 @@ class WebSocketClient(private val host: String, private val port: Int, private v
       ) {
         listener.onConnected()
 
-        for (i in 1..10) {
-          send(Frame.Text("Hello, world!"))
-          Log.d("WebSocketClient", ">Sent: Hello, world!")
-        }
+        try {
+          send(Frame.Text("Initial handshake message."))
+          Log.d("WebSocketClient", ">Sent: Initial handshake message.")
 
-        for (frame in incoming) {
-          if (frame is Frame.Text) {
-            listener.onMessage(frame.readText())
+          while (true) {
+            val frame = incoming.receive()
+            if (frame is Frame.Text) {
+              val text = frame.readText()
+              listener.onMessage(text)
+            }
           }
+        } catch (e: Exception) {
+          Log.e("WebSocketClient", "Error: $e")
+          listener.onDisconnected()
         }
       }
+    }
+  }
 
-
+  fun send(message: String) {
+    runBlocking {
+      client.ws(
+        method = HttpMethod.Get,
+        host = host,
+        port = port,
+        path = path
+      ) {
+        send(Frame.Text(message))
+        Log.d("WebSocketClient", ">Sent: $message")
+      }
+    }
   }
 
   fun disconnect(listener: WebSocketListener) {

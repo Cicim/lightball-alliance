@@ -162,6 +162,13 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onConnected() {
     // Handle connection
     Log.d("WebSocketClient", ">>>Connected!")
+
+    // Send the orientation angles to the server.
+    val azimuth = Math.toDegrees(orientationAngles[0].toDouble())
+    val pitch = Math.toDegrees(orientationAngles[1].toDouble())
+    val roll = Math.toDegrees(orientationAngles[2].toDouble())
+    val message = "Azimuth: $azimuth, Pitch: $pitch, Roll: $roll"
+    webSocketClient.send(message)
   }
 
   override fun onMessage(message: String) {
