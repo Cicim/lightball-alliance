@@ -8,6 +8,7 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.sensorsexample2.ui.theme.SensorsExample2Theme
@@ -33,6 +36,8 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   private val webSocketClient = WebSocketClient("ws://localhost:8080/ws")
 
+  private val orientationViewModel: OrientationViewModel by viewModels()
+
   /**
    * SENSOR MANAGER
    * Retrieve the data from the accelerometer and magnetometer sensors
@@ -45,7 +50,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
       SensorsExample2Theme {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          SensorData(orientationAngles)
+          SensorData(orientationViewModel)
           ConnectButtons(
             onClickConnect = { webSocketClient.connect(this) },
             onClickDisconnect = { webSocketClient.disconnect() }
@@ -106,14 +111,15 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
       System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
     }
 
+    // Update the orientation angles
     updateOrientationAngles()
 
     // Update the UI with the new orientation angles
-//    setContent {
-//      SensorsExample2Theme {
-//        SensorData(orientationAngles)
-//      }
-//    }
+    orientationViewModel.updateOrientation(
+      orientationAngles[0],
+      orientationAngles[1],
+      orientationAngles[2]
+    )
   }
 
   // Compute the three orientation angles based on the most recent readings from
@@ -154,12 +160,14 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 }
 
 @Composable
-fun SensorData(orientationAngles: FloatArray) {
+fun SensorData(orientationViewModel: OrientationViewModel) {
   // Display the 3 orientation angles.
+  val values by orientationViewModel.orientation.collectAsState()
+
   val string: String = """
-    ${"Azimuth: %.2f".format(Math.toDegrees(orientationAngles[0].toDouble()))}
-    ${"Pitch: %.2f".format(Math.toDegrees(orientationAngles[1].toDouble()))}
-    ${"Roll: %.2f".format(Math.toDegrees(orientationAngles[2].toDouble()))}
+    ${"Azimuth: %.2f".format(Math.toDegrees(values.azimuth.toDouble()))}
+    ${"Pitch: %.2f".format(Math.toDegrees(values.pitch.toDouble()))}
+    ${"Roll: %.2f".format(Math.toDegrees(values.roll.toDouble()))}
   """.trimIndent()
 
   Text(text = "Orientation Angles:")
