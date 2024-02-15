@@ -8,8 +8,14 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,14 +24,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.sensorsexample2.ui.theme.SensorsExample2Theme
 
-class MainActivity : ComponentActivity(), SensorEventListener {
+class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
   private val accelerometerReading = FloatArray(3)
   private val magnetometerReading = FloatArray(3)
-
   private val rotationMatrix = FloatArray(9)
   private val orientationAngles = FloatArray(3)
 
+  private val webSocketClient = WebSocketClient("ws://localhost:8080/ws")
+
+  /**
+   * SENSOR MANAGER
+   * Retrieve the data from the accelerometer and magnetometer sensors
+   * and continuously update the UI with the orientation angles.
+   */
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -34,6 +46,10 @@ class MainActivity : ComponentActivity(), SensorEventListener {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           SensorData(orientationAngles)
+          ConnectButtons(
+            onClickConnect = { webSocketClient.connect(this) },
+            onClickDisconnect = { webSocketClient.disconnect() }
+          )
         }
       }
     }
@@ -93,11 +109,11 @@ class MainActivity : ComponentActivity(), SensorEventListener {
     updateOrientationAngles()
 
     // Update the UI with the new orientation angles
-    setContent {
-      SensorsExample2Theme {
-        SensorData(orientationAngles)
-      }
-    }
+//    setContent {
+//      SensorsExample2Theme {
+//        SensorData(orientationAngles)
+//      }
+//    }
   }
 
   // Compute the three orientation angles based on the most recent readings from
@@ -117,6 +133,24 @@ class MainActivity : ComponentActivity(), SensorEventListener {
 
     // "orientationAngles" now has up-to-date information.
   }
+
+  /**
+   * WEBSOCKET CLIENT
+   * Connect to the server and send the orientation angles.
+   */
+
+
+  override fun onConnected() {
+    // Handle connection
+  }
+
+  override fun onMessage(message: String) {
+    // Handle received message
+  }
+
+  override fun onDisconnected() {
+    // Handle disconnection
+  }
 }
 
 @Composable
@@ -130,4 +164,34 @@ fun SensorData(orientationAngles: FloatArray) {
 
   Text(text = "Orientation Angles:")
   Text(text = string, modifier = Modifier.padding(30.dp))
+}
+
+// Create composable button to connect/disconnect from the server.
+@Composable
+fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit) {
+  Column (
+    Modifier.fillMaxHeight(),
+    verticalArrangement = Arrangement.Bottom
+  ) {
+    Row (
+      Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.Center
+    ) {
+      Button(
+        onClick = onClickConnect,
+        enabled = true,
+        modifier = Modifier.padding(2.dp)
+      ) {
+        Text(text = "Connect")
+      }
+
+      Button(
+        onClick = onClickDisconnect,
+        enabled = true,
+        modifier = Modifier.padding(2.dp)
+      ) {
+        Text(text = "Disconnect")
+      }
+    }
+  }
 }
