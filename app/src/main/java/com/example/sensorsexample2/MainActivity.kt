@@ -24,13 +24,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.sensorsexample2.ui.theme.SensorsExample2Theme
-import io.ktor.websocket.readText
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
@@ -46,6 +43,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   )
 
   private val orientationViewModel: OrientationViewModel by viewModels()
+  private val isConnected = mutableStateOf(false)
 
   /**
    * SENSOR MANAGER
@@ -55,24 +53,22 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    isConnected.value = webSocketClient.isConnected()
+
     setContent {
       SensorsExample2Theme {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           SensorData(orientationViewModel)
-          ConnectButtons(
-            onClickConnect = {
-              GlobalScope.launch(Dispatchers.Main) {
-                webSocketClient.connect(this@MainActivity)
-              }
-            },
-            onClickDisconnect = { webSocketClient.disconnect(this@MainActivity) }
-          )
         }
+        ConnectButtons(
+          onClickConnect = { webSocketClient.connect(this@MainActivity) },
+          onClickDisconnect = { webSocketClient.disconnect(this@MainActivity) },
+          isConnected = isConnected.value
+        )
       }
     }
-
-    sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
   }
 
   override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
@@ -118,21 +114,31 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   // Get readings from accelerometer and magnetometer. To simplify calculations,
   // consider storing these readings as unit vectors.
   override fun onSensorChanged(event: SensorEvent) {
+    var changed = false
+    isConnected.value = webSocketClient.isConnected()
+
     if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
       System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.size)
+      changed = true
     } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
       System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
+      changed = true
     }
 
-    // Update the orientation angles
-    updateOrientationAngles()
+    if (changed) {
+      // Update the orientation angles
+      updateOrientationAngles()
 
-    // Update the UI with the new orientation angles
-    orientationViewModel.updateOrientation(
-      orientationAngles[0],
-      orientationAngles[1],
-      orientationAngles[2]
-    )
+      // Update the UI with the new orientation angles
+      orientationViewModel.updateOrientation(
+        orientationAngles[0],
+        orientationAngles[1],
+        orientationAngles[2]
+      )
+
+      // Send the orientation angles to the server.
+      sendData()
+    }
   }
 
   // Compute the three orientation angles based on the most recent readings from
@@ -162,13 +168,6 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onConnected() {
     // Handle connection
     Log.d("WebSocketClient", ">>>Connected!")
-
-    // Send the orientation angles to the server.
-    val azimuth = Math.toDegrees(orientationAngles[0].toDouble())
-    val pitch = Math.toDegrees(orientationAngles[1].toDouble())
-    val roll = Math.toDegrees(orientationAngles[2].toDouble())
-    val message = "Azimuth: $azimuth, Pitch: $pitch, Roll: $roll"
-    webSocketClient.send(message)
   }
 
   override fun onMessage(message: String) {
@@ -179,6 +178,19 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onDisconnected() {
     // Handle disconnection
     Log.d("WebSocketClient", ">>>Disconnected!")
+  }
+
+  private fun sendData() {
+    if (!webSocketClient.isConnected()) {
+      return
+    }
+
+    // Send the orientation angles to the server.
+    val azimuth = Math.toDegrees(orientationAngles[0].toDouble())
+    val pitch = Math.toDegrees(orientationAngles[1].toDouble())
+    val roll = Math.toDegrees(orientationAngles[2].toDouble())
+    val message = "Azimuth: $azimuth, Pitch: $pitch, Roll: $roll"
+    webSocketClient.send(message)
   }
 }
 
@@ -199,7 +211,7 @@ fun SensorData(orientationViewModel: OrientationViewModel) {
 
 // Create composable button to connect/disconnect from the server.
 @Composable
-fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit) {
+fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit, isConnected: Boolean) {
   Column (
     Modifier.fillMaxHeight(),
     verticalArrangement = Arrangement.Bottom
@@ -210,7 +222,7 @@ fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit) {
     ) {
       Button(
         onClick = onClickConnect,
-        enabled = true,
+        enabled = !isConnected,
         modifier = Modifier.padding(2.dp)
       ) {
         Text(text = "Connect")
@@ -218,7 +230,7 @@ fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit) {
 
       Button(
         onClick = onClickDisconnect,
-        enabled = true,
+        enabled = isConnected,
         modifier = Modifier.padding(2.dp)
       ) {
         Text(text = "Disconnect")
