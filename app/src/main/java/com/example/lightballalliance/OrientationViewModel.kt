@@ -1,4 +1,4 @@
-package com.example.sensorsexample2
+package com.example.lightballalliance
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

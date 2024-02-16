@@ -1,4 +1,4 @@
-package com.example.sensorsexample2
+package com.example.lightballalliance
 
 interface WebSocketListener {
   fun onConnected()

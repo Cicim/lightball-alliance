@@ -1,4 +1,4 @@
-package com.example.sensorsexample2
+package com.example.lightballalliance
 
 import org.junit.Test
 

@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-  namespace = "com.example.sensorsexample2"
+  namespace = "com.example.lightballalliance"
   compileSdk = 34
 
   defaultConfig {
-    applicationId = "com.example.sensorsexample2"
+    applicationId = "com.example.lightballalliance"
     minSdk = 24
     targetSdk = 34
     versionCode = 1

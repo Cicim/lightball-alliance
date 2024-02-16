@@ -1,4 +1,4 @@
-package com.example.sensorsexample2
+package com.example.lightballalliance
 
 import android.content.Context
 import android.hardware.Sensor
@@ -27,7 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.sensorsexample2.ui.theme.SensorsExample2Theme
+import com.example.lightballalliance.ui.theme.lightballallianceTheme
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     isConnected.value = webSocketClient.isConnected()
 
     setContent {
-      SensorsExample2Theme {
+      lightballallianceTheme {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           SensorData(orientationViewModel)

@@ -13,5 +13,5 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "SensorsExample2"
+rootProject.name = "lightballalliance"
 include(":app")

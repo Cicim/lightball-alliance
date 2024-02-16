@@ -1,4 +1,4 @@
-package com.example.sensorsexample2.ui.theme
+package com.example.lightballalliance.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
