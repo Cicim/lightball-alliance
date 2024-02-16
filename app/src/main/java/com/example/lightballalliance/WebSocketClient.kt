@@ -20,9 +20,7 @@ import kotlinx.coroutines.runBlocking
 class WebSocketClient(private val urlGiven: String) {
 
   private val client = HttpClient(CIO) {
-    install(WebSockets) {
-      pingInterval = 20_000
-    }
+    install(WebSockets)
   }
 
   private var webSocketSession: WebSocketSession? = null

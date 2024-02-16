@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.lightballalliance.ui.theme.lightballallianceTheme
@@ -43,7 +44,9 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   private val orientationViewModel: OrientationViewModel by viewModels()
   private val isConnected = mutableStateOf(false)
-  private val address = mutableStateOf("ws://10.0.2.2:8080/ws")
+  private val address = mutableStateOf("ws://10.0.2.2:8080")
+
+  private val askName = mutableStateOf("NO_NAME")
 
 
   /**
@@ -69,7 +72,21 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
             Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center
           ) {
-            AddressTextBox(address = address.value, onAddressChange = { address.value = it })
+            AddressTextBox(
+              address = address.value,
+              onAddressChange = { address.value = it },
+              isConnected = isConnected.value
+            )
+
+            NameTextBox(
+              askName = askName.value,
+              onNameChange = { askName.value = it },
+              isConnected = isConnected.value,
+              confirmName = {
+                webSocketClient.send(askName.value)
+//                askName.value = "NO_NAME"
+              }
+            )
 
             ConnectButtons(
               onClickConnect = {
@@ -193,6 +210,20 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onMessage(message: String) {
     // Handle received message
     Log.d("WebSocketClient", ">Received: $message")
+
+    // Parse the JSON message that is received from the server.
+    val regex = """^\{"type":\s*"(.*)",\s*"data":\s*(.*)\}$""".toRegex()
+
+    val matchResult = regex.find(message)
+    if (matchResult != null) {
+      val (type, data) = matchResult.destructured
+      Log.d("WebSocketClient", ">>Type: $type, Data: $data")
+
+      if (type == "ask_name") {
+        askName.value = ""
+      }
+
+    }
   }
 
   override fun onDisconnected() {
@@ -207,10 +238,12 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     }
 
     // Send the orientation angles to the server.
-    val azimuth = "%.2f".format(Math.toDegrees(orientationAngles[0].toDouble()))
-    val pitch = "%.2f".format(Math.toDegrees(orientationAngles[1].toDouble()))
-    val roll = "%.2f".format(Math.toDegrees(orientationAngles[2].toDouble()))
-    val message = "Azimuth: $azimuth, Pitch: $pitch, Roll: $roll"
+    val azimuth = "%.2f".format(orientationAngles[0].toDouble())
+    val pitch = "%.2f".format(orientationAngles[1].toDouble())
+    val roll = "%.2f".format(orientationAngles[2].toDouble())
+
+    val message = """{"type": "player_rotation_updated", "data": {"x": $pitch, "y": $azimuth, "z": $roll}}"""
+
     webSocketClient.send(message)
   }
 }
@@ -231,7 +264,7 @@ fun SensorData(orientationViewModel: OrientationViewModel) {
 }
 
 @Composable
-fun AddressTextBox(address: String, onAddressChange: (String) -> Unit) {
+fun AddressTextBox(address: String, onAddressChange: (String) -> Unit, isConnected: Boolean) {
   // Create composable text box to enter the server address.
   Row (
     Modifier.fillMaxWidth(),
@@ -241,7 +274,42 @@ fun AddressTextBox(address: String, onAddressChange: (String) -> Unit) {
       value = address,
       onValueChange = onAddressChange,
       label = { Text("Server Address (ws://host:port/path)") },
+      enabled = !isConnected
     )
+  }
+}
+
+@Composable
+fun NameTextBox(askName: String, onNameChange: (String) -> Unit, isConnected: Boolean, confirmName: () -> Unit) {
+  // Create composable text box to enter the name.
+  if (askName != "NO_NAME" && isConnected) {
+    Column (
+      Modifier.padding(10.dp)
+    ) {
+      Text(
+        text = "Welcome to the game!\nChoose your name:",
+        modifier = Modifier.align(Alignment.CenterHorizontally)
+      )
+
+      Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+      ) {
+        OutlinedTextField(
+          value = askName,
+          onValueChange = onNameChange,
+          label = { Text("Name") },
+        )
+      }
+
+      Button(
+        onClick = confirmName,
+        modifier = Modifier.padding(bottom = 10.dp, top = 5.dp)
+          .align(Alignment.CenterHorizontally)
+      ) {
+        Text(text = "Confirm")
+      }
+    }
   }
 }
 
