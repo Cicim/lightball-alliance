@@ -55,7 +55,7 @@ class WebSocketClient(private val host: String, private val port: Int, private v
 
   fun send(message: String) {
     if (isConnected()) {
-      runBlocking {
+      CoroutineScope(Dispatchers.IO).launch {
         webSocketSession?.send(Frame.Text(message))
         Log.d("WebSocketClient", ">Sent: $message")
       }

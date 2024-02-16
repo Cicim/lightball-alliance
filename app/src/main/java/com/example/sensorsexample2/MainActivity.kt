@@ -31,8 +31,12 @@ import com.example.sensorsexample2.ui.theme.SensorsExample2Theme
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
+
   private val accelerometerReading = FloatArray(3)
+  private val prevAccelerometerReading = FloatArray(3)
   private val magnetometerReading = FloatArray(3)
+  private val prevMagnetometerReading = FloatArray(3)
+
   private val rotationMatrix = FloatArray(9)
   private val orientationAngles = FloatArray(3)
 
@@ -118,11 +122,17 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     isConnected.value = webSocketClient.isConnected()
 
     if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-      System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.size)
-      changed = true
+      if (!event.values.contentEquals(prevAccelerometerReading)) {
+        System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.size)
+        System.arraycopy(event.values, 0, prevAccelerometerReading, 0, prevAccelerometerReading.size)
+        changed = true
+      }
     } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-      System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
-      changed = true
+      if (!event.values.contentEquals(prevMagnetometerReading)) {
+        System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
+        System.arraycopy(event.values, 0, prevMagnetometerReading, 0, prevMagnetometerReading.size)
+        changed = true
+      }
     }
 
     if (changed) {
@@ -159,11 +169,11 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     // "orientationAngles" now has up-to-date information.
   }
 
+
   /**
    * WEBSOCKET CLIENT
    * Connect to the server and send the orientation angles.
    */
-
 
   override fun onConnected() {
     // Handle connection
@@ -186,9 +196,9 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     }
 
     // Send the orientation angles to the server.
-    val azimuth = Math.toDegrees(orientationAngles[0].toDouble())
-    val pitch = Math.toDegrees(orientationAngles[1].toDouble())
-    val roll = Math.toDegrees(orientationAngles[2].toDouble())
+    val azimuth = "%.2f".format(Math.toDegrees(orientationAngles[0].toDouble()))
+    val pitch = "%.2f".format(Math.toDegrees(orientationAngles[1].toDouble()))
+    val roll = "%.2f".format(Math.toDegrees(orientationAngles[2].toDouble()))
     val message = "Azimuth: $azimuth, Pitch: $pitch, Roll: $roll"
     webSocketClient.send(message)
   }
