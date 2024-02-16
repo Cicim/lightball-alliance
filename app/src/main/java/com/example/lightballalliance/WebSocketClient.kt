@@ -17,7 +17,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class WebSocketClient(private val host: String, private val port: Int, private val path: String) {
+class WebSocketClient(private val urlGiven: String) {
 
   private val client = HttpClient(CIO) {
     install(WebSockets) {
@@ -29,16 +29,16 @@ class WebSocketClient(private val host: String, private val port: Int, private v
   private var job: Job? = null
 
   fun connect(listener: WebSocketListener) {
-    Log.d("WebSocketClient", ">>>Connecting to $host:$port$path")
+    Log.d("WebSocketClient", ">>>Connecting to $urlGiven")
 
     job = CoroutineScope(Dispatchers.IO).launch {
       try {
         webSocketSession = client.webSocketSession {
-          url("ws://$host:$port$path")
+          url(urlGiven)
         }
 
         listener.onConnected()
-        Log.d("WebSocketClient", ">>>Connected to $host:$port$path")
+        Log.d("WebSocketClient", ">>>Connected to $urlGiven")
 
         while (isConnected()) {
           val message = webSocketSession?.incoming?.receive()
@@ -71,7 +71,7 @@ class WebSocketClient(private val host: String, private val port: Int, private v
     listener.onDisconnected()
   }
 
-  fun isConnected(): Boolean {
+  private fun isConnected(): Boolean {
     return webSocketSession?.isActive ?: false
   }
 }

@@ -13,12 +13,12 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +31,7 @@ import com.example.lightballalliance.ui.theme.lightballallianceTheme
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
+  private lateinit var webSocketClient: WebSocketClient
 
   private val accelerometerReading = FloatArray(3)
   private val prevAccelerometerReading = FloatArray(3)
@@ -40,14 +41,10 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   private val rotationMatrix = FloatArray(9)
   private val orientationAngles = FloatArray(3)
 
-  private val webSocketClient = WebSocketClient(
-    host = "10.0.2.2",
-    port = 8080,
-    path = "/ws"
-  )
-
   private val orientationViewModel: OrientationViewModel by viewModels()
   private val isConnected = mutableStateOf(false)
+  private val address = mutableStateOf("ws://10.0.2.2:8080/ws")
+
 
   /**
    * SENSOR MANAGER
@@ -57,20 +54,33 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
+    // Initialize the variables.
     sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    isConnected.value = webSocketClient.isConnected()
+    isConnected.value = false
 
     setContent {
       lightballallianceTheme {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           SensorData(orientationViewModel)
+
+          Column (
+            Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center
+          ) {
+            AddressTextBox(address = address.value, onAddressChange = { address.value = it })
+
+            ConnectButtons(
+              onClickConnect = {
+                webSocketClient = WebSocketClient(address.value)
+                webSocketClient.connect(this@MainActivity)
+              },
+              onClickDisconnect = { webSocketClient.disconnect(this@MainActivity) },
+              isConnected = isConnected.value
+            )
+          }
         }
-        ConnectButtons(
-          onClickConnect = { webSocketClient.connect(this@MainActivity) },
-          onClickDisconnect = { webSocketClient.disconnect(this@MainActivity) },
-          isConnected = isConnected.value
-        )
       }
     }
   }
@@ -119,7 +129,6 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   // consider storing these readings as unit vectors.
   override fun onSensorChanged(event: SensorEvent) {
     var changed = false
-    isConnected.value = webSocketClient.isConnected()
 
     if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
       if (!event.values.contentEquals(prevAccelerometerReading)) {
@@ -178,6 +187,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onConnected() {
     // Handle connection
     Log.d("WebSocketClient", ">>>Connected!")
+    isConnected.value = true
   }
 
   override fun onMessage(message: String) {
@@ -188,10 +198,11 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onDisconnected() {
     // Handle disconnection
     Log.d("WebSocketClient", ">>>Disconnected!")
+    isConnected.value = false
   }
 
   private fun sendData() {
-    if (!webSocketClient.isConnected()) {
+    if (!isConnected.value) {
       return
     }
 
@@ -219,32 +230,42 @@ fun SensorData(orientationViewModel: OrientationViewModel) {
   Text(text = string, modifier = Modifier.padding(30.dp))
 }
 
+@Composable
+fun AddressTextBox(address: String, onAddressChange: (String) -> Unit) {
+  // Create composable text box to enter the server address.
+  Row (
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.Center
+  ) {
+    OutlinedTextField(
+      value = address,
+      onValueChange = onAddressChange,
+      label = { Text("Server Address (ws://host:port/path)") },
+    )
+  }
+}
+
 // Create composable button to connect/disconnect from the server.
 @Composable
 fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit, isConnected: Boolean) {
-  Column (
-    Modifier.fillMaxHeight(),
-    verticalArrangement = Arrangement.Bottom
+  Row (
+    Modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.Center
   ) {
-    Row (
-      Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.Center
+    Button(
+      onClick = onClickConnect,
+      enabled = !isConnected,
+      modifier = Modifier.padding(2.dp)
     ) {
-      Button(
-        onClick = onClickConnect,
-        enabled = !isConnected,
-        modifier = Modifier.padding(2.dp)
-      ) {
-        Text(text = "Connect")
-      }
+      Text(text = "Connect")
+    }
 
-      Button(
-        onClick = onClickDisconnect,
-        enabled = isConnected,
-        modifier = Modifier.padding(2.dp)
-      ) {
-        Text(text = "Disconnect")
-      }
+    Button(
+      onClick = onClickDisconnect,
+      enabled = isConnected,
+      modifier = Modifier.padding(2.dp)
+    ) {
+      Text(text = "Disconnect")
     }
   }
 }
