@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   private val address = mutableStateOf("ws://10.0.2.2:8080")
 
   private val askName = mutableStateOf("NO_NAME")
+  private val nameConfirmed = mutableStateOf(false)
 
 
   /**
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     // Initialize the variables.
     sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     isConnected.value = false
+    nameConfirmed.value = false
 
     setContent {
       lightballallianceTheme {
@@ -84,7 +86,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
               isConnected = isConnected.value,
               confirmName = {
                 webSocketClient.send(askName.value)
-//                askName.value = "NO_NAME"
+                nameConfirmed.value = true
               }
             )
 
@@ -233,14 +235,14 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   }
 
   private fun sendData() {
-    if (!isConnected.value) {
+    if (!isConnected.value || !nameConfirmed.value) {
       return
     }
 
     // Send the orientation angles to the server.
-    val azimuth = "%.2f".format(orientationAngles[0].toDouble())
-    val pitch = "%.2f".format(orientationAngles[1].toDouble())
-    val roll = "%.2f".format(orientationAngles[2].toDouble())
+    val azimuth = "%.2f".format(orientationAngles[0].toDouble()).replace(",", ".")
+    val pitch = "%.2f".format(orientationAngles[1].toDouble()).replace(",", ".")
+    val roll = "%.2f".format(orientationAngles[2].toDouble()).replace(",", ".")
 
     val message = """{"type": "player_rotation_updated", "data": {"x": $pitch, "y": $azimuth, "z": $roll}}"""
 
