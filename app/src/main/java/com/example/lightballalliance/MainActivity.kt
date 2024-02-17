@@ -38,6 +38,8 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   private lateinit var webSocketClient: WebSocketClient
 
   private val gameRotation = DoubleArray(3)
+  private val eulerAngles = mutableStateOf(DoubleArray(3))
+  private val sensorsCalibration = mutableStateOf(DoubleArray(3))
 
   private val orientationViewModel: OrientationViewModel by viewModels()
   private val isConnected = mutableStateOf(false)
@@ -60,12 +62,19 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     isConnected.value = false
     nameConfirmed.value = false
+    sensorsCalibration.value = DoubleArray(3)
 
     setContent {
       lightballallianceTheme {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          SensorData(orientationViewModel)
+          SensorData(
+            orientationViewModel,
+            calibrate = {
+              // Retrieve the current orientation angles and store them as the calibration values.
+              sensorsCalibration.value = eulerAngles.value.copyOf()
+            }
+          )
 
           Column (
             Modifier.fillMaxSize(),
@@ -131,12 +140,12 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   override fun onSensorChanged(event: SensorEvent) {
     if (event.sensor.type == Sensor.TYPE_GAME_ROTATION_VECTOR) {
       val inputQuaternion = event.values
-      val eulerAngles = rotationVectorToEulerAngles(inputQuaternion)
+      eulerAngles.value = rotationVectorToEulerAngles(inputQuaternion)
 
-      if (!eulerAngles.contentEquals(gameRotation)) {
-        gameRotation[0] = eulerAngles[0]
-        gameRotation[1] = eulerAngles[1]
-        gameRotation[2] = eulerAngles[2]
+      if (!eulerAngles.value.contentEquals(gameRotation)) {
+        gameRotation[0] = eulerAngles.value[0] - sensorsCalibration.value[0]
+        gameRotation[1] = eulerAngles.value[1] - sensorsCalibration.value[1]
+        gameRotation[2] = eulerAngles.value[2] - sensorsCalibration.value[2]
 
         // Update the UI with the new orientation angles
         orientationViewModel.updateOrientation(
@@ -165,7 +174,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onMessage(message: String) {
     // Handle received message
-    Log.d("WebSocketClient", ">Received: $message")
+//    Log.d("WebSocketClient", ">Received: $message")
 
     // Parse the JSON message that is received from the server.
     val regex = """^\{"type":\s*"(.*)",\s*"data":\s*(.*)\}$""".toRegex()
@@ -216,7 +225,6 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     return doubleArrayOf(roll, pitch, yaw)
   }
 
-
   private fun sendData() {
     if (!isConnected.value || !nameConfirmed.value) {
       return
@@ -224,8 +232,8 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
     // Send the orientation angles to the server.
     val x = "%.3f".format(gameRotation[0]).replace(",", ".")
-    val y = "%.3f".format(gameRotation[1]).replace(",", ".")
-    val z = "%.3f".format(gameRotation[2]).replace(",", ".")
+    val z = "%.3f".format(-gameRotation[1]).replace(",", ".")
+    val y = "%.3f".format(gameRotation[2]).replace(",", ".")
 
     val message = """{"type": "player_rotation_updated", "data": {"x": $x, "y": $y, "z": $z}}"""
 
@@ -234,18 +242,34 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 }
 
 @Composable
-fun SensorData(orientationViewModel: OrientationViewModel) {
+fun SensorData(orientationViewModel: OrientationViewModel, calibrate: () -> Unit) {
   // Display the 3 orientation angles.
   val values by orientationViewModel.orientation.collectAsState()
 
   val string: String = """
     ${"x: %.3f".format(Math.toDegrees(values.x))}
-    ${"y: %.3f".format(Math.toDegrees(values.y))}
-    ${"z: %.3f".format(Math.toDegrees(values.z))}
+    ${"y: %.3f".format(Math.toDegrees(values.z))}
+    ${"z: %.3f".format(Math.toDegrees(values.y))}
   """.trimIndent()
 
-  Text(text = "Orientation Angles:")
-  Text(text = string, modifier = Modifier.padding(30.dp))
+  Row {
+    Column {
+      Text(text = "Orientation Angles:")
+      Text(text = string, modifier = Modifier.padding(30.dp))
+    }
+
+    Column (
+      Modifier.fillMaxSize(),
+      horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+      Button(
+        onClick = calibrate,
+        modifier = Modifier.padding(10.dp)
+      ) {
+        Text(text = "Calibrate")
+      }
+    }
+  }
 }
 
 @Composable
@@ -289,7 +313,8 @@ fun NameTextBox(askName: String, onNameChange: (String) -> Unit, isConnected: Bo
 
       Button(
         onClick = confirmName,
-        modifier = Modifier.padding(bottom = 10.dp, top = 5.dp)
+        modifier = Modifier
+          .padding(bottom = 10.dp, top = 5.dp)
           .align(Alignment.CenterHorizontally)
       ) {
         Text(text = "Confirm")
