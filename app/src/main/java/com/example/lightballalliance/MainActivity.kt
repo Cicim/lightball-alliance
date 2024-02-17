@@ -49,6 +49,9 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   private val askName = mutableStateOf("NO_NAME")
   private val nameConfirmed = mutableStateOf(false)
 
+  private val UPDATE_INTERVAL_MILLISECONDS = 500L
+  private var lastUpdateTimestamp = 0L
+
 
   /**
    * SENSOR MANAGER
@@ -163,7 +166,10 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
       }
     }
 
-    if (changed) {
+    val currentTimeMillis = System.currentTimeMillis()
+    if (changed && currentTimeMillis - lastUpdateTimestamp >= UPDATE_INTERVAL_MILLISECONDS) {
+      lastUpdateTimestamp = currentTimeMillis
+
       // Update the orientation angles
       updateOrientationAngles()
 
