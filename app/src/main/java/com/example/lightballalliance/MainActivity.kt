@@ -29,18 +29,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.lightballalliance.ui.theme.lightballallianceTheme
+import kotlin.math.atan2
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
   private lateinit var webSocketClient: WebSocketClient
 
-  private val accelerometerReading = FloatArray(3)
-  private val prevAccelerometerReading = FloatArray(3)
-  private val magnetometerReading = FloatArray(3)
-  private val prevMagnetometerReading = FloatArray(3)
-
-  private val rotationMatrix = FloatArray(9)
-  private val orientationAngles = FloatArray(3)
+  private val gameRotation = DoubleArray(3)
 
   private val orientationViewModel: OrientationViewModel by viewModels()
   private val isConnected = mutableStateOf(false)
@@ -48,9 +45,6 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   private val askName = mutableStateOf("NO_NAME")
   private val nameConfirmed = mutableStateOf(false)
-
-  private val UPDATE_INTERVAL_MILLISECONDS = 500L
-  private var lastUpdateTimestamp = 0L
 
 
   /**
@@ -114,26 +108,11 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onResume() {
     super.onResume()
-
-    // Get updates from the accelerometer and magnetometer at a constant rate.
-    // To make batch operations more efficient and reduce power consumption,
-    // provide support for delaying updates to the application.
-    //
-    // In this example, the sensor reporting delay is small enough such that
-    // the application receives an update before the system checks the sensor
-    // readings again.
-    sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also { accelerometer ->
+    
+    sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)?.also { gameRotationVector ->
       sensorManager.registerListener(
         this,
-        accelerometer,
-        SensorManager.SENSOR_DELAY_NORMAL,
-        SensorManager.SENSOR_DELAY_UI
-      )
-    }
-    sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)?.also { magneticField ->
-      sensorManager.registerListener(
-        this,
-        magneticField,
+        gameRotationVector,
         SensorManager.SENSOR_DELAY_NORMAL,
         SensorManager.SENSOR_DELAY_UI
       )
@@ -150,57 +129,26 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
   // Get readings from accelerometer and magnetometer. To simplify calculations,
   // consider storing these readings as unit vectors.
   override fun onSensorChanged(event: SensorEvent) {
-    var changed = false
+    if (event.sensor.type == Sensor.TYPE_GAME_ROTATION_VECTOR) {
+      val inputQuaternion = event.values
+      val eulerAngles = rotationVectorToEulerAngles(inputQuaternion)
 
-    if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
-      if (!event.values.contentEquals(prevAccelerometerReading)) {
-        System.arraycopy(event.values, 0, accelerometerReading, 0, accelerometerReading.size)
-        System.arraycopy(event.values, 0, prevAccelerometerReading, 0, prevAccelerometerReading.size)
-        changed = true
-      }
-    } else if (event.sensor.type == Sensor.TYPE_MAGNETIC_FIELD) {
-      if (!event.values.contentEquals(prevMagnetometerReading)) {
-        System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.size)
-        System.arraycopy(event.values, 0, prevMagnetometerReading, 0, prevMagnetometerReading.size)
-        changed = true
+      if (!eulerAngles.contentEquals(gameRotation)) {
+        gameRotation[0] = eulerAngles[0]
+        gameRotation[1] = eulerAngles[1]
+        gameRotation[2] = eulerAngles[2]
+
+        // Update the UI with the new orientation angles
+        orientationViewModel.updateOrientation(
+          gameRotation[0],
+          gameRotation[1],
+          gameRotation[2]
+        )
+
+        // Send the orientation angles to the server.
+        sendData()
       }
     }
-
-    val currentTimeMillis = System.currentTimeMillis()
-    if (changed && currentTimeMillis - lastUpdateTimestamp >= UPDATE_INTERVAL_MILLISECONDS) {
-      lastUpdateTimestamp = currentTimeMillis
-
-      // Update the orientation angles
-      updateOrientationAngles()
-
-      // Update the UI with the new orientation angles
-      orientationViewModel.updateOrientation(
-        orientationAngles[0],
-        orientationAngles[1],
-        orientationAngles[2]
-      )
-
-      // Send the orientation angles to the server.
-      sendData()
-    }
-  }
-
-  // Compute the three orientation angles based on the most recent readings from
-  // the device's accelerometer and magnetometer.
-  private fun updateOrientationAngles() {
-    // Update rotation matrix, which is needed to update orientation angles.
-    SensorManager.getRotationMatrix(
-      rotationMatrix,
-      null,
-      accelerometerReading,
-      magnetometerReading
-    )
-
-    // "rotationMatrix" now has up-to-date information.
-
-    SensorManager.getOrientation(rotationMatrix, orientationAngles)
-
-    // "orientationAngles" now has up-to-date information.
   }
 
 
@@ -225,7 +173,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     val matchResult = regex.find(message)
     if (matchResult != null) {
       val (type, data) = matchResult.destructured
-      Log.d("WebSocketClient", ">>Type: $type, Data: $data")
+//      Log.d("WebSocketClient", ">>Type: $type, Data: $data")
 
       if (type == "ask_name") {
         askName.value = ""
@@ -240,17 +188,46 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     isConnected.value = false
   }
 
+  private fun rotationVectorToEulerAngles(v: FloatArray): DoubleArray {
+    val qx = v[0].toDouble() // x * sin(theta / 2)
+    val qy = v[1].toDouble() // y * sin(theta / 2)
+    val qz = v[2].toDouble() // z * sin(theta / 2)
+
+    val norm = sqrt(qx * qx + qy * qy + qz * qz)
+    if (norm == 0.0) {
+      return doubleArrayOf(0.0, 0.0, 0.0)
+    }
+
+    // cos(theta / 2)
+    val qw = sqrt(1.0 - norm * norm)
+
+    val sinr_cosp = 2 * (qw * qx + qy * qz)
+    val cosr_cosp = 1 - 2 * (qx * qx + qy * qy)
+    val roll = ceil(atan2(sinr_cosp, cosr_cosp) * 1000) / 1000
+
+    val sinp = sqrt(1 + 2 * (qw * qy - qx * qz))
+    val cosp = sqrt(1 - 2 * (qw * qy - qx * qz))
+    val pitch = ceil((atan2(sinp, cosp) - Math.PI / 2) * 1000) / 1000
+
+    val siny_cosp = 2 * (qw * qz + qx * qy)
+    val cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
+    val yaw = ceil(atan2(siny_cosp, cosy_cosp) * 1000) / 1000
+
+    return doubleArrayOf(roll, pitch, yaw)
+  }
+
+
   private fun sendData() {
     if (!isConnected.value || !nameConfirmed.value) {
       return
     }
 
     // Send the orientation angles to the server.
-    val azimuth = "%.2f".format(orientationAngles[0].toDouble()).replace(",", ".")
-    val pitch = "%.2f".format(orientationAngles[1].toDouble()).replace(",", ".")
-    val roll = "%.2f".format(orientationAngles[2].toDouble()).replace(",", ".")
+    val x = "%.3f".format(gameRotation[0]).replace(",", ".")
+    val y = "%.3f".format(gameRotation[1]).replace(",", ".")
+    val z = "%.3f".format(gameRotation[2]).replace(",", ".")
 
-    val message = """{"type": "player_rotation_updated", "data": {"x": $pitch, "y": $azimuth, "z": $roll}}"""
+    val message = """{"type": "player_rotation_updated", "data": {"x": $x, "y": $y, "z": $z}}"""
 
     webSocketClient.send(message)
   }
@@ -262,9 +239,9 @@ fun SensorData(orientationViewModel: OrientationViewModel) {
   val values by orientationViewModel.orientation.collectAsState()
 
   val string: String = """
-    ${"Azimuth: %.2f".format(Math.toDegrees(values.azimuth.toDouble()))}
-    ${"Pitch: %.2f".format(Math.toDegrees(values.pitch.toDouble()))}
-    ${"Roll: %.2f".format(Math.toDegrees(values.roll.toDouble()))}
+    ${"x: %.3f".format(Math.toDegrees(values.x))}
+    ${"y: %.3f".format(Math.toDegrees(values.y))}
+    ${"z: %.3f".format(Math.toDegrees(values.z))}
   """.trimIndent()
 
   Text(text = "Orientation Angles:")
