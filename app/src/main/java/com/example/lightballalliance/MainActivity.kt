@@ -96,18 +96,8 @@ class MainActivity : ComponentActivity(), WebSocketListener {
   override fun onMessage(message: String) {
     // Handle received message
     Log.d("MainActivity", ">Received: $message")
-
-    // Parse the JSON message that is received from the server.
-    val regex = """^\{"type":\s*"(.*)",\s*"data":\s*(.*)\}$""".toRegex()
-
-    val matchResult = regex.find(message)
-    if (matchResult != null) {
-      val (type, data) = matchResult.destructured
-//      Log.d("MainActivity", ">>Type: $type, Data: $data")
-
-      if (type == "ask_name") {
-        askName.value = ""
-      }
+    if (message == "ask_name") {
+      askName.value = ""
     }
   }
 

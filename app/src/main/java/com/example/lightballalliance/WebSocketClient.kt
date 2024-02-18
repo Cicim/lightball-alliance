@@ -52,8 +52,20 @@ object WebSocketClient {
         while (isConnected()) {
           val message = webSocketSession?.incoming?.receive()
           if (message is Frame.Text) {
-            gameListener?.onMessage(message.readText())
-            mainListener?.onMessage(message.readText())
+            // Parse the JSON message that is received from the server.
+            val regex = """^\{"type":\s*"(.*)",\s*"data":\s*(.*)\}$""".toRegex()
+
+            val matchResult = regex.find(message.readText())
+            if (matchResult != null) {
+              val (type, _) = matchResult.destructured
+
+              if (type == "ask_name") {
+                mainListener?.onMessage(type)
+              }
+              else {
+                gameListener?.onMessage(message.readText())
+              }
+            }
           }
         }
       } catch (e: Exception) {
