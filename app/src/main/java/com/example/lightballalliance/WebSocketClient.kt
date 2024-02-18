@@ -17,16 +17,27 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class WebSocketClient(private val urlGiven: String) {
-
-  private val client = HttpClient(CIO) {
-    install(WebSockets)
-  }
-
+object WebSocketClient {
   private var webSocketSession: WebSocketSession? = null
+  private var mainListener: WebSocketListener? = null
+  private var gameListener: WebSocketListener? = null
   private var job: Job? = null
 
-  fun connect(listener: WebSocketListener) {
+  private lateinit var client: HttpClient
+
+  fun setMainListener(listener: WebSocketListener) {
+     mainListener = listener
+  }
+
+  fun setGameListener(listener: WebSocketListener) {
+     gameListener = listener
+  }
+
+  fun connect(urlGiven: String) {
+    client = HttpClient(CIO) {
+      install(WebSockets)
+    }
+
     Log.d("WebSocketClient", ">>>Connecting to $urlGiven")
 
     job = CoroutineScope(Dispatchers.IO).launch {
@@ -35,18 +46,19 @@ class WebSocketClient(private val urlGiven: String) {
           url(urlGiven)
         }
 
-        listener.onConnected()
+        mainListener?.onConnected()
         Log.d("WebSocketClient", ">>>Connected to $urlGiven")
 
         while (isConnected()) {
           val message = webSocketSession?.incoming?.receive()
           if (message is Frame.Text) {
-            listener.onMessage(message.readText())
+            gameListener?.onMessage(message.readText())
+            mainListener?.onMessage(message.readText())
           }
         }
       } catch (e: Exception) {
         Log.d("WebSocketClient", ">>>Error: ${e.message}")
-        disconnect(listener)
+        disconnect()
       }
     }
   }
@@ -60,13 +72,14 @@ class WebSocketClient(private val urlGiven: String) {
     }
   }
 
-  fun disconnect(listener: WebSocketListener) {
+  fun disconnect() {
     job?.cancel()
     runBlocking {
       webSocketSession?.close()
       client.close()
     }
-    listener.onDisconnected()
+    mainListener?.onDisconnected()
+    gameListener?.onDisconnected()
   }
 
   private fun isConnected(): Boolean {

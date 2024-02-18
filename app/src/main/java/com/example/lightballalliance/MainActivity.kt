@@ -1,6 +1,7 @@
 package com.example.lightballalliance
 
 import android.content.Context
+import android.content.Intent
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -35,7 +36,6 @@ import kotlin.math.sqrt
 
 class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
-  private lateinit var webSocketClient: WebSocketClient
 
   private val gameRotation = DoubleArray(3)
   private val eulerAngles = mutableStateOf(DoubleArray(3))
@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     isConnected.value = false
     nameConfirmed.value = false
     sensorsCalibration.value = DoubleArray(3)
+    WebSocketClient.setMainListener(this@MainActivity)
 
     setContent {
       lightballallianceTheme {
@@ -91,23 +92,28 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
               onNameChange = { askName.value = it },
               isConnected = isConnected.value,
               confirmName = {
-                webSocketClient.send(askName.value)
+                WebSocketClient.send(askName.value)
                 nameConfirmed.value = true
+                navigateToGameActivity()
               }
             )
 
             ConnectButtons(
-              onClickConnect = {
-                webSocketClient = WebSocketClient(address.value)
-                webSocketClient.connect(this@MainActivity)
-              },
-              onClickDisconnect = { webSocketClient.disconnect(this@MainActivity) },
+              onClickConnect = { WebSocketClient.connect(address.value) },
+              onClickDisconnect = { WebSocketClient.disconnect() },
               isConnected = isConnected.value
             )
           }
         }
       }
     }
+  }
+
+  private fun navigateToGameActivity() {
+    // Navigate to the game activity.
+    // This function is called when the user confirms the name.
+    val intent = Intent(this, GameActivity::class.java)
+    startActivity(intent)
   }
 
   override fun onAccuracyChanged(sensor: Sensor, accuracy: Int) {
@@ -168,13 +174,13 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onConnected() {
     // Handle connection
-    Log.d("WebSocketClient", ">>>Connected!")
+    Log.d("MainActivity", ">>>Connected!")
     isConnected.value = true
   }
 
   override fun onMessage(message: String) {
     // Handle received message
-//    Log.d("WebSocketClient", ">Received: $message")
+    Log.d("MainActivity", ">Received: $message")
 
     // Parse the JSON message that is received from the server.
     val regex = """^\{"type":\s*"(.*)",\s*"data":\s*(.*)\}$""".toRegex()
@@ -182,7 +188,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
     val matchResult = regex.find(message)
     if (matchResult != null) {
       val (type, data) = matchResult.destructured
-//      Log.d("WebSocketClient", ">>Type: $type, Data: $data")
+//      Log.d("MainActivity", ">>Type: $type, Data: $data")
 
       if (type == "ask_name") {
         askName.value = ""
@@ -193,7 +199,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
   override fun onDisconnected() {
     // Handle disconnection
-    Log.d("WebSocketClient", ">>>Disconnected!")
+    Log.d("MainActivity", ">>>Disconnected!")
     isConnected.value = false
   }
 
@@ -237,7 +243,7 @@ class MainActivity : ComponentActivity(), SensorEventListener, WebSocketListener
 
     val message = """{"type": "player_rotation_updated", "data": {"x": $x, "y": $y, "z": $z}}"""
 
-    webSocketClient.send(message)
+    WebSocketClient.send(message)
   }
 }
 
