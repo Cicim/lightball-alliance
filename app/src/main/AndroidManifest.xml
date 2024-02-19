@@ -19,7 +19,7 @@
     <activity
       android:name=".GameActivity"
       android:exported="false"
-      android:theme="@style/Theme.AppCompat.DayNight.DarkActionBar" />
+      android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
     <activity
       android:name=".MainActivity"
