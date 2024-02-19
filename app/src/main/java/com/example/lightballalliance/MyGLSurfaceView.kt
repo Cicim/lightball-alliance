@@ -4,7 +4,6 @@ import android.content.Context
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
-import android.os.SystemClock
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -23,15 +22,31 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
     // Set the Renderer for drawing on the GLSurfaceView
     setRenderer(renderer)
   }
+
+  fun setCamPos(x: Float, y: Float, z: Float) {
+    renderer.setCamPos(x, y, z)
+  }
 }
 
 class MyGLRenderer : GLSurfaceView.Renderer {
   private lateinit var mEnemy: EnemyObject
+
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
   private val vPMatrix = FloatArray(16)
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
-  private val rotationMatrix = FloatArray(16)
+//  private val rotationMatrix = FloatArray(16)
+  private val translateMatrix = FloatArray(16)
+
+  private var camX = 0f
+  private var camY = 0f
+  private var camZ = 6f
+
+  fun setCamPos(x: Float, y: Float, z: Float) {
+    camX = x
+    camY = y
+    camZ = z
+  }
 
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
     // Set the background frame color
@@ -43,24 +58,30 @@ class MyGLRenderer : GLSurfaceView.Renderer {
   override fun onDrawFrame(unused: GL10) {
     val scratch = FloatArray(16)
 
+//    val time = SystemClock.uptimeMillis() % 400000L
+//    val angle = 0.00090f * time.toInt()
+
     // Redraw background color
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
     // Set the camera position (View matrix)
-    Matrix.setLookAtM(viewMatrix, 0, 0f, 0f, 3f, 0f, 0f, 0f, 0f, 1.0f, 0.0f)
+    Matrix.setLookAtM(viewMatrix, 0, 0f, 0f, 6f, camX, camY, camZ, 0f, 1f, 0f)
 
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
-    // Create a rotation transformation for the triangle
-    val time = SystemClock.uptimeMillis() % 4000L
-    val angle = 0.090f * time.toInt()
-    Matrix.setRotateM(rotationMatrix, 0, angle, 1f, 1f, 1f)
+    // Create a translation transformation
+    Matrix.setIdentityM(translateMatrix, 0)
+    Matrix.translateM(translateMatrix, 0, 0f, 0f, 0f)
+
+    // Combine the translation matrix with the projection and camera view
+    Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+
+    // Create a rotation transformation
+//    Matrix.setRotateM(rotationMatrix, 0, angle, 1f, 1f, 1f)
 
     // Combine the rotation matrix with the projection and camera view
-    // Note that the vPMatrix factor *must be first* in order
-    // for the matrix multiplication product to be correct.
-    Matrix.multiplyMM(scratch, 0, vPMatrix, 0, rotationMatrix, 0)
+//    Matrix.multiplyMM(scratch, 0, scratch, 0, rotationMatrix, 0)
 
     // Draw shape
     mEnemy.draw(scratch)

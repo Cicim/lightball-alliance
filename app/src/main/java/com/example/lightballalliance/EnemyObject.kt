@@ -6,8 +6,9 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import java.nio.ShortBuffer
 
-// number of coordinates per vertex in this array
+// Number of coordinates per vertex
 const val COORDS_PER_VERTEX = 3
+
 class EnemyObject {
   private var cubeCoords = floatArrayOf(
     // Front face
