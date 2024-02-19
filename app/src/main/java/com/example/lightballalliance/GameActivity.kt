@@ -6,6 +6,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.opengl.GLSurfaceView
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.compose.setContent
@@ -33,6 +34,7 @@ import kotlin.math.sqrt
 
 class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
+  private lateinit var gLView: GLSurfaceView
 
   private val gameRotation = DoubleArray(3)
   private val eulerAngles = mutableStateOf(DoubleArray(3))
@@ -49,20 +51,23 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     sensorsCalibration.value = DoubleArray(3)
     isConnected.value = true
 
-    setContent {
-      // A surface container using the 'background' color from the theme
-      Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        lightballallianceTheme {
-          SensorData(
-            orientationViewModel,
-            calibrate = {
-              // Retrieve the current orientation angles and store them as the calibration values.
-              sensorsCalibration.value = eulerAngles.value.copyOf()
-            }
-          )
-        }
-      }
-    }
+    gLView = MyGLSurfaceView(this)
+    setContentView(gLView)
+
+//    setContent {
+//      // A surface container using the 'background' color from the theme
+//      Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+//        lightballallianceTheme {
+//          SensorData(
+//            orientationViewModel,
+//            calibrate = {
+//              // Retrieve the current orientation angles and store them as the calibration values.
+//              sensorsCalibration.value = eulerAngles.value.copyOf()
+//            }
+//          )
+//        }
+//      }
+//    }
   }
 
 
