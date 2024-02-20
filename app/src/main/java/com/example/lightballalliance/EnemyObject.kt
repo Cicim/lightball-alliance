@@ -4,12 +4,13 @@ import android.opengl.GLES20
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
-import java.nio.ShortBuffer
 
 // Number of coordinates per vertex
 const val COORDS_PER_VERTEX = 3
 
-class EnemyObject {
+class EnemyObject (
+  private val translationVector: FloatArray
+) {
   private var cubeCoords = floatArrayOf(
     // Front face
     -0.5f, -0.5f,  0.5f,
@@ -63,7 +64,6 @@ class EnemyObject {
     "}"
 
   private var mProgram: Int
-  private val drawOrder = shortArrayOf(0, 1, 2, 0, 2, 3) // order to draw vertices
 
   private var positionHandle: Int = 0
   private var mColorHandle: Int = 0
@@ -88,6 +88,10 @@ class EnemyObject {
       // creates OpenGL ES program executables
       GLES20.glLinkProgram(it)
     }
+  }
+
+  fun getTranslationVector(): FloatArray {
+    return translationVector
   }
 
   fun draw(mvpMatrix: FloatArray) {
@@ -139,17 +143,6 @@ class EnemyObject {
       order(ByteOrder.nativeOrder())
       asFloatBuffer().apply {
         put(cubeCoords)
-        position(0)
-      }
-    }
-
-  // initialize byte buffer for the draw list
-  private val drawListBuffer: ShortBuffer =
-    // (# of coordinate values * 2 bytes per short)
-    ByteBuffer.allocateDirect(drawOrder.size * 2).run {
-      order(ByteOrder.nativeOrder())
-      asShortBuffer().apply {
-        put(drawOrder)
         position(0)
       }
     }

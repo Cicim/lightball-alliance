@@ -1,9 +1,9 @@
 package com.example.lightballalliance.data
+
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-
 
 sealed class GameMessage {
   // Game communications
