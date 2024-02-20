@@ -85,9 +85,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       eulerAngles.value = rotationVectorToEulerAngles(inputQuaternion)
 
       if (!eulerAngles.value.contentEquals(gameRotation)) {
-        gameRotation[0] = eulerAngles.value[0] - sensorsCalibration.value[0]
-        gameRotation[1] = eulerAngles.value[1] - sensorsCalibration.value[1]
-        gameRotation[2] = eulerAngles.value[2] - sensorsCalibration.value[2]
+        gameRotation[0] = eulerAngles.value[0] - sensorsCalibration.value[0] // roll (z)
+        gameRotation[1] = eulerAngles.value[1] - sensorsCalibration.value[1] // pitch (x)
+        gameRotation[2] = eulerAngles.value[2] - sensorsCalibration.value[2] // yaw (y)
 
         // Update the UI with the new orientation angles
         orientationViewModel.updateOrientation(
@@ -101,9 +101,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
         // Redraw the GLSurfaceView
         gLView.setCamPos(
-          gameRotation[2].toFloat(),
-          gameRotation[1].toFloat(),
-          gameRotation[0].toFloat()
+          gameRotation[1],
+          gameRotation[0],
+          gameRotation[2]
         )
       }
     }

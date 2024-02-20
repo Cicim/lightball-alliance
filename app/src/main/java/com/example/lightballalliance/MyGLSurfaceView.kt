@@ -4,8 +4,11 @@ import android.content.Context
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import android.util.Log
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.math.cos
+import kotlin.math.sin
 
 class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   private val renderer: MyGLRenderer
@@ -23,7 +26,7 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
     setRenderer(renderer)
   }
 
-  fun setCamPos(x: Float, y: Float, z: Float) {
+  fun setCamPos(x: Double, y: Double, z: Double) {
     renderer.setCamPos(x, y, z)
   }
 }
@@ -40,12 +43,17 @@ class MyGLRenderer : GLSurfaceView.Renderer {
 
   private var camX = 0f
   private var camY = 0f
-  private var camZ = 6f
+  private var camZ = 0f
+  private var eyeX = 0f
+  private var eyeY = 0f
+  private var eyeZ = 6f
 
-  fun setCamPos(x: Float, y: Float, z: Float) {
-    camX = x
-    camY = y
-    camZ = z
+  fun setCamPos(roll: Double, pitch: Double, yaw: Double) {
+    Log.d("MyGLRenderer", "roll: %.1f, pitch: %.1f, yaw: %.1f".format(roll, pitch, yaw))
+
+    camX = eyeX - sin(yaw).toFloat() * cos(pitch).toFloat()
+    camY = eyeY + sin(pitch).toFloat()
+    camZ = eyeZ - cos(yaw).toFloat() * cos(pitch).toFloat()
   }
 
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
@@ -58,14 +66,11 @@ class MyGLRenderer : GLSurfaceView.Renderer {
   override fun onDrawFrame(unused: GL10) {
     val scratch = FloatArray(16)
 
-//    val time = SystemClock.uptimeMillis() % 400000L
-//    val angle = 0.00090f * time.toInt()
-
     // Redraw background color
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
     // Set the camera position (View matrix)
-    Matrix.setLookAtM(viewMatrix, 0, 0f, 0f, 6f, camX, camY, camZ, 0f, 1f, 0f)
+    Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, camX, camY, camZ, 0f, 1f, 0f)
 
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
