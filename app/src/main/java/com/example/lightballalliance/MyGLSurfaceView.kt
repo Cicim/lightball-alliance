@@ -38,7 +38,9 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 }
 
 class MyGLRenderer : GLSurfaceView.Renderer {
-  private val enemies = mutableListOf<EnemyObject>()
+  private lateinit var enemyObject: EnemyObject
+
+  private val enemies = mutableListOf<FloatArray>()
 
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
   private val vPMatrix = FloatArray(16)
@@ -63,12 +65,15 @@ class MyGLRenderer : GLSurfaceView.Renderer {
 
   // Function to add an enemy to the game with a given translation vector
   fun addEnemy(translationVector: FloatArray) {
-    enemies.add(EnemyObject(translationVector))
+    enemies.add(translationVector)
   }
 
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
     // Set the background frame color
     GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+
+    // Initialize the enemy object
+    enemyObject = EnemyObject()
 
     // Add enemies to the game
     addEnemy(floatArrayOf(3f, 3f, 3f))
@@ -94,7 +99,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
 
     enemies.forEach {
       // Get the translation vector for the enemy
-      val (tx, ty, tz) = it.getTranslationVector()
+      val (tx, ty, tz) = it
 
       // Create a translation transformation
       Matrix.setIdentityM(translateMatrix, 0)
@@ -104,7 +109,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
       Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
 
       // Draw shape
-      it.draw(scratch)
+      enemyObject.draw(scratch)
     }
   }
 

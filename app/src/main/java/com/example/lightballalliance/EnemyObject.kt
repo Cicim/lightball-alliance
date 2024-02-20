@@ -8,9 +8,7 @@ import java.nio.FloatBuffer
 // Number of coordinates per vertex
 const val COORDS_PER_VERTEX = 3
 
-class EnemyObject (
-  private val translationVector: FloatArray
-) {
+class EnemyObject {
   private var cubeCoords = floatArrayOf(
     // Front face
     -0.5f, -0.5f,  0.5f,
@@ -88,10 +86,6 @@ class EnemyObject (
       // creates OpenGL ES program executables
       GLES20.glLinkProgram(it)
     }
-  }
-
-  fun getTranslationVector(): FloatArray {
-    return translationVector
   }
 
   fun draw(mvpMatrix: FloatArray) {
