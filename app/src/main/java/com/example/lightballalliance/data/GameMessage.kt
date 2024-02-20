@@ -82,7 +82,7 @@ fun parseGameMessage(message: String): GameMessage {
 }
 
 @Serializable
-data class Vec3(val x: Float, val y: Float, val z: Float)
+data class Vec3(val x: Double, val y: Double, val z: Double)
 
 @Serializable
 data class PlayerData(
