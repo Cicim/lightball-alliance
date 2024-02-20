@@ -3,8 +3,8 @@ package com.example.lightballalliance.data
 class Game (
   playersData: List<PlayerData>
 ) {
-  private val players: List<Player> = emptyList()
-  private val enemies: List<Enemy> = emptyList()
+  private var players: MutableList<Player> = mutableListOf()
+  private var enemies: MutableList<Enemy> = mutableListOf()
   private var time: Int = 0
 
   init {
@@ -15,7 +15,7 @@ class Game (
       val initialRotation = rotation.clone()
 
       val player = Player(data.username, position, rotation, initialRotation)
-      players.plus(player)
+      players.add(player)
     }
   }
 
@@ -26,14 +26,14 @@ class Game (
 
   // Add a new enemy to the scene
   fun addEnemy(enemy: Enemy) {
-    enemies.plus(enemy)
+    enemies.add(enemy)
   }
 
   // Remove an enemy by id from the scene
   fun removeEnemy(enemy: Int) {
     // Find the enemy with the given id
     val index = enemies.indexOfFirst { it.getId() == enemy }
-    enemies.minus(index)
+    enemies.removeAt(index)
   }
 
 
@@ -43,12 +43,12 @@ class Game (
 
   // Add the player to the list of players.
   fun addPlayer(player: Player) {
-    players.plus(player)
+    players.add(player)
   }
 
   // Remove the player from the list of players.
   fun removePlayer(player: Player) {
-    players.minus(player)
+    players.remove(player)
   }
 
   /**

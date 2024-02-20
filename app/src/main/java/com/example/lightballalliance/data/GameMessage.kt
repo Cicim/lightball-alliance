@@ -1,5 +1,6 @@
 package com.example.lightballalliance.data
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -22,6 +23,7 @@ sealed class GameMessage {
     val health: Int,
     val source: Vec3,
     val target: Vec3,
+    @SerialName("start_time")
     val startTime: Int,
     val speed: Double
   ) : GameMessage()

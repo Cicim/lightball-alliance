@@ -24,19 +24,20 @@ class Vec3:
         self.y = other.y
         self.z = other.z
         return self
-    
+
     def distance(self, other: 'Vec3') -> float:
         return ((self.x - other.x)**2 + (self.y - other.y)**2 + (self.z - other.z)**2)**0.5
 
     def __str__(self):
         return f"({self.x:.2f}, {self.y:.2f}, {self.z:.2f})"
-    
+
     def dict(self):
         return {
             'x': self.x,
             'y': self.y,
             'z': self.z
         }
+
 
 @dataclass
 class Enemy:
@@ -59,11 +60,15 @@ class Enemy:
     # Current position of the enemy
     def get_position(self, time: int) -> Vec3:
         return Vec3(
-            self.source.x + (self.target.x - self.source.x) * (time - self.start_time) * self.speed,
-            self.source.y + (self.target.y - self.source.y) * (time - self.start_time) * self.speed,
-            self.source.z + (self.target.z - self.source.z) * (time - self.start_time) * self.speed
+            self.source.x + (self.target.x - self.source.x) *
+            (time - self.start_time) * self.speed,
+            self.source.y + (self.target.y - self.source.y) *
+            (time - self.start_time) * self.speed,
+            self.source.z + (self.target.z - self.source.z) *
+            (time - self.start_time) * self.speed
         )
-    
+
+
 class Player:
     # Player identifier
     username: str
@@ -71,6 +76,8 @@ class Player:
     health: int
     # Accumulated score
     score: int
+    # If the player is ready to start
+    ready: bool
 
     # Player rotation vector (for the observer)
     rotation: Vec3
@@ -83,6 +90,7 @@ class Player:
         self.position = Vec3(0, 0, 0)
         self.health = 100
         self.score = 0
+        self.ready = False
 
     def dict(self):
         return {
@@ -111,12 +119,13 @@ class GameBroadcasts:
         # Send all **in parallel** and wait for all to finish before continuing
         await asyncio.gather(*[client.send_json({'type': msg_type, 'data': msg_data}) for client in self.clients])
 
-    ## Broadcasts
+    # Broadcasts
     # Broadcast to all the players that the game has started with the list of players.
     async def game_started(self, players: list[Player]):
         print("Broadcast: game_started")
         for player in players:
-            print(f" - Player {player.username:<16} {player.health} HP, position {player.position}")
+            print(
+                f" - Player {player.username:<16} {player.health} HP, position {player.position}")
         print()
 
         await self._broadcast('game_started', {
@@ -128,7 +137,7 @@ class GameBroadcasts:
         print(f"Broadcast: game_over {motivation}")
 
         await self._broadcast('game_over', motivation)
-    
+
     # Event for time synchronization
     async def time_sync(self, time: int):
         print(f"\nBroadcast: time_sync {time / 1000.0:.3f}s")
@@ -137,7 +146,8 @@ class GameBroadcasts:
 
     # A new enemy has been added to the game
     async def enemy_added(self, enemy: Enemy):
-        print(f"Broadcast: enemy_added {enemy.id} #{enemy.color:06X} {enemy.health} HP, position {enemy.get_position(0)}")
+        print(
+            f"Broadcast: enemy_added {enemy.id} #{enemy.color:06X} {enemy.health} HP, position {enemy.get_position(0)}")
 
         await self._broadcast('enemy_added', {
             'id': enemy.id,
@@ -163,7 +173,7 @@ class GameBroadcasts:
         print(f"Broadcast: enemy_removed {enemy.id}")
 
         await self._broadcast('enemy_removed', enemy.id)
-    
+
     # Player rotation has been updated
     async def player_rotation_updated(self, username: str, rotation: Vec3):
         print(f"Broadcast: player_rotation_updated {username} {rotation}")
@@ -175,7 +185,8 @@ class GameBroadcasts:
 
     # Player score has been updated
     async def player_score_updated(self, username: str, score: int):
-        print(f"Broadcast: player_score_updated {username}'s score updated to {score} pts")
+        print(
+            f"Broadcast: player_score_updated {username}'s score updated to {score} pts")
 
         await self._broadcast('player_score_updated', {
             'username': username,
@@ -184,7 +195,8 @@ class GameBroadcasts:
 
     # Player health has been updated
     async def player_damaged(self, username: str, health: int):
-        print(f"Broadcast: player_damaged {username}'s health is now {health} HP")
+        print(
+            f"Broadcast: player_damaged {username}'s health is now {health} HP")
 
         await self._broadcast('player_damaged', {
             'username': username,
@@ -192,11 +204,13 @@ class GameBroadcasts:
         })
 
 # Game class
+
+
 class Game:
     # Global time of the game
     time: int
     # Game duration
-    duration: int = 120_000 # 2 minutes
+    duration: int = 120_000  # 2 minutes
 
     # Map of enemies in the game
     enemies: dict[int, Enemy]
@@ -224,7 +238,7 @@ class Game:
         for (i, username) in enumerate(players):
             # The player should be created so that it lies on the circumference of a circle
             angle = i * 2 * math.pi / len(players)
-            
+
             sina = RADIUS * math.sin(angle)
             cosa = RADIUS * math.cos(angle)
 
@@ -235,7 +249,7 @@ class Game:
             player.position = position
             player.rotation = rotation
             self.players[username] = player
-            
+
     async def start(self):
         """Starts the game and broadcasts the start of the game to all the players."""
         self.time = 0
@@ -271,7 +285,7 @@ class Game:
 
     async def update(self):
         """Update the game state and broadcast the changes to the clients."""
-        if self.time >= self.duration: 
+        if self.time >= self.duration:
             await self.broadcast.game_over("Time is up!")
             return True
 
@@ -299,13 +313,14 @@ class Game:
         self.time += 50
 
         return False
-    
+
     async def run(self):
         """Run the game loop."""
         await self.start()
         while True:
             stop = await self.update()
-            if stop: break
+            if stop:
+                break
             await asyncio.sleep(0.05)
 
     async def player_take_damage(self, player: Player, damage: int) -> bool:
@@ -326,7 +341,7 @@ class Game:
         print(f"\nEvent: player_rotated {username} moved to {rotation}")
         player = self.players[username]
         player.rotation.copy(rotation)
-        
+
         await self.broadcast.player_rotation_updated(player.username, rotation)
 
     async def on_enemy_shot(self, username: str, enemy_id: int):
@@ -359,3 +374,15 @@ class Game:
 
         await self.broadcast.game_over(f"{username} has disconnected.")
 
+    async def on_player_ready(self, username: str):
+        """Event handler for when a player is ready to start the game."""
+        print(f"\nEvent: player_ready {username}")
+        if username in self.players:
+            player = self.players[username]
+            player.ready = True
+            print(f" - Player {username} is ready to start.")
+        else:
+            print(f" - Player {username} does not exist.")
+
+        if all(player.ready for player in self.players.values()):
+            asyncio.create_task(self.run())

@@ -4,6 +4,7 @@ import android.content.Context
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import android.util.Log
 import com.example.lightballalliance.data.Game
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -39,8 +40,7 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 
 class MyGLRenderer : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
-  private lateinit var game: Game
-  private val enemies = mutableListOf<FloatArray>()
+  private var game: Game? = null
 
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
   private val vPMatrix = FloatArray(16)
@@ -64,11 +64,6 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     centerZ = eyeZ - cos(yaw).toFloat() * cos(pitch).toFloat()
   }
 
-  // Function to add an enemy to the game with a given translation vector
-  private fun addEnemy(translationVector: FloatArray) {
-    enemies.add(translationVector)
-  }
-
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
     this.game = game
@@ -80,15 +75,6 @@ class MyGLRenderer : GLSurfaceView.Renderer {
 
     // Initialize the enemy object
     enemyObject = EnemyObject()
-
-    // Add enemies to the game
-    addEnemy(floatArrayOf(3f, 3f, 3f))
-    addEnemy(floatArrayOf(2f, 2f, 2f))
-    addEnemy(floatArrayOf(1f, 1f, 1f))
-    addEnemy(floatArrayOf(0f, 0f, 0f))
-    addEnemy(floatArrayOf(-1f, -1f, 1f))
-    addEnemy(floatArrayOf(-2f, -2f, 2f))
-    addEnemy(floatArrayOf(-3f, -3f, 3f))
   }
 
   override fun onDrawFrame(unused: GL10) {
@@ -103,19 +89,27 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
-    enemies.forEach {
-      // Get the translation vector for the enemy
-      val (tx, ty, tz) = it
+    if (game == null) {
+      return
+    }
 
-      // Create a translation transformation
-      Matrix.setIdentityM(translateMatrix, 0)
-      Matrix.translateM(translateMatrix,0, tx, ty, tz)
+    try {
+      game!!.getEnemies().forEach {
+        // Get the translation vector for the enemy
+        val (tx, ty, tz) = it.getPosition(game!!.getTime())
 
-      // Combine the translation matrix with the projection and camera view
-      Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+        // Create a translation transformation
+        Matrix.setIdentityM(translateMatrix, 0)
+        Matrix.translateM(translateMatrix,0, tx.toFloat(), ty.toFloat(), tz.toFloat())
 
-      // Draw shape
-      enemyObject.draw(scratch)
+        // Combine the translation matrix with the projection and camera view
+        Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+
+        // Draw shape
+        enemyObject.draw(scratch)
+      }
+    } catch (e: Exception) {
+      Log.e("MyGLRenderer", "Error: ${e.message}")
     }
   }
 

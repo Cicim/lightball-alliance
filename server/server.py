@@ -3,6 +3,7 @@ from aiohttp import web, WSMessage, WSMsgType
 
 from game import Game, GameBroadcasts, Vec3
 
+
 class GamesServer:
     # The web application
     app: web.Application
@@ -34,7 +35,7 @@ class GamesServer:
             if username in self.players:
                 await self.send_message(username, 'ask_name', 'Username is already taken')
                 username = ''
-        
+
         # Add the user to the list of players
         self.players[username] = ws
         # Send the user a message that they are ready to play
@@ -57,26 +58,30 @@ class GamesServer:
                 msg_type = msg['type']
                 msg_data = msg['data']
 
-                if msg_type == 'player_rotation_updated':
-                    rotation = Vec3(msg_data['x'], msg_data['y'], msg_data['z'])
+                if msg_type == 'player_ready':
+                    await game.on_player_ready(username)
+                elif msg_type == 'player_rotation_updated':
+                    rotation = Vec3(
+                        msg_data['x'], msg_data['y'], msg_data['z'])
                     await game.on_player_rotated(username, rotation)
                 elif msg_type == 'enemy_shot':
                     id = msg_data['id']
                     await game.on_enemy_shot(username, id)
 
             except Exception as e:
+                print(e)
                 print(f"Received an invalid message from {username}: {msg}")
                 continue
 
         return ws
-    
+
     async def send_message_to_anon(self, ws: web.WebSocketResponse, msg_type: str, msg_data: dict | str | int):
         """Send a message to a socket."""
         await ws.send_json({
             'type': msg_type,
             'data': msg_data
         })
-    
+
     async def send_message(self, username: str, msg_type: str, msg_data: dict | str | int):
         """Send a message to a player."""
         if not username in self.players:
@@ -90,7 +95,6 @@ class GamesServer:
             del self.players[username]
 
             raise e
-    
 
     # List of players who are looking for a match
     waiting_for_match: set[str] = set()
@@ -117,7 +121,7 @@ class GamesServer:
             player1, player2 = match
             socket1 = self.players[player1]
             socket2 = self.players[player2]
-            
+
             # Send the players a message that they are matched together
             try:
                 await self.send_message(player1, 'matched', player2)
@@ -128,9 +132,8 @@ class GamesServer:
 
                 self.open_games[player1] = game
                 self.open_games[player2] = game
-                print("New game created! Players:", player1, player2)
-                # Create a new thread to start the game
-                asyncio.create_task(game.run())
+                print("New game created! Players:", player1, player2,
+                      "waiting for both players to be ready...")
             except Exception as e:
                 async with self.match_making_semaphore:
                     print(f"Match failed because someone disconnected")
@@ -138,13 +141,16 @@ class GamesServer:
                     if player1 in self.players:
                         self.match_making_queue.append(player1)
                         self.waiting_for_match.add(player1)
-                        print(f"Readded {player1} because they are still connected")
+                        print(
+                            f"Readded {player1} because they are still connected")
                     if player2 in self.players:
                         self.match_making_queue.append(player2)
                         self.waiting_for_match.add(player2)
-                        print(f"Readded {player2} because they are still connected")
+                        print(
+                            f"Readded {player2} because they are still connected")
         else:
             # Send the player a message that they are waiting for a match
             await self.send_message_to_anon(ws, 'waiting', 'Waiting for a match...')
+
 
 GamesServer(8080)

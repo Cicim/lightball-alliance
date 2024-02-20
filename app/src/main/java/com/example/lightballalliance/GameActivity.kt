@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableStateOf
+import com.example.lightballalliance.data.Enemy
 import com.example.lightballalliance.data.Game
 import com.example.lightballalliance.data.GameMessage
 import kotlin.math.atan2
@@ -21,7 +22,7 @@ import kotlin.math.sqrt
 class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
   private lateinit var gLView: MyGLSurfaceView
-  private lateinit var game: Game
+  private var game: Game? = null
 
   private val gameRotation = DoubleArray(3)
   private val eulerAngles = mutableStateOf(DoubleArray(3))
@@ -40,6 +41,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
     gLView = MyGLSurfaceView(this)
     setContentView(gLView)
+
+    // Send the player_ready message
+    WebSocketClient.send("""{"type": "player_ready", "data": ""}""")
   }
 
   override fun onTouchEvent(e: MotionEvent): Boolean {
@@ -141,7 +145,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   }
 
   private fun sendData() {
-    if (!isConnected.value) {
+    if (!isConnected.value || game == null) {
       return
     }
 
@@ -175,8 +179,25 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
         // Instantiate a new Game object
         game = Game(message.players)
-        gLView.setGameHandler(game)
+        gLView.setGameHandler(game!!)
       }
+      is GameMessage.TimeSync -> {
+        // Synchronize the time with the server
+        game?.syncTime(message.time)
+      }
+      is GameMessage.EnemyAdded -> {
+        val enemy = Enemy(
+          message.id,
+          message.health,
+          message.color,
+          message.startTime,
+          message.speed,
+          doubleArrayOf(message.source.x, message.source.y, message.source.z),
+          doubleArrayOf(message.target.x, message.target.y, message.target.z)
+        )
+        game?.addEnemy(enemy)
+      }
+
       else -> { }
     }
   }
