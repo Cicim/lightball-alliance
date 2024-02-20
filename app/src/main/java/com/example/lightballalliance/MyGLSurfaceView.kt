@@ -4,6 +4,7 @@ import android.content.Context
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
+import com.example.lightballalliance.data.Game
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.cos
@@ -25,21 +26,20 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
     setRenderer(renderer)
   }
 
-  // Function to set the camera position according to the orientation angles
-  // of the device
-  fun setCamPos(x: Double, y: Double, z: Double) {
-    renderer.setCamPos(x, y, z)
+  fun setGameHandler(game: Game) {
+    renderer.setGameHandler(game)
   }
 
-  // Function to add an enemy to the game
-  fun addEnemy(translationVector: FloatArray) {
-    renderer.addEnemy(translationVector)
+  // Function to set the camera orientation according to the orientation angles
+  // of the device
+  fun setCamOrientation(x: Double, y: Double, z: Double) {
+    renderer.setCamOrientation(x, y, z)
   }
 }
 
 class MyGLRenderer : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
-
+  private lateinit var game: Game
   private val enemies = mutableListOf<FloatArray>()
 
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
@@ -48,24 +48,30 @@ class MyGLRenderer : GLSurfaceView.Renderer {
   private val viewMatrix = FloatArray(16)
   private val translateMatrix = FloatArray(16)
 
-  private var camX = 0f
-  private var camY = 0f
-  private var camZ = 0f
+  // Variables to set the camera position
+  private var centerX = 0f
+  private var centerY = 0f
+  private var centerZ = 0f
   private var eyeX = 0f
   private var eyeY = 0f
   private var eyeZ = 6f
 
-  // Function to set the camera position according to the orientation angles
+  // Function to set the camera orientation according to the orientation angles
   // of the device, using roll, pitch, and yaw
-  fun setCamPos(roll: Double, pitch: Double, yaw: Double) {
-    camX = eyeX - sin(yaw).toFloat() * cos(pitch).toFloat()
-    camY = eyeY + sin(pitch).toFloat()
-    camZ = eyeZ - cos(yaw).toFloat() * cos(pitch).toFloat()
+  fun setCamOrientation(roll: Double, pitch: Double, yaw: Double) {
+    centerX = eyeX - sin(yaw).toFloat() * cos(pitch).toFloat()
+    centerY = eyeY + sin(pitch).toFloat()
+    centerZ = eyeZ - cos(yaw).toFloat() * cos(pitch).toFloat()
   }
 
   // Function to add an enemy to the game with a given translation vector
-  fun addEnemy(translationVector: FloatArray) {
+  private fun addEnemy(translationVector: FloatArray) {
     enemies.add(translationVector)
+  }
+
+  // Function to set the handler for the game
+  fun setGameHandler(game: Game) {
+    this.game = game
   }
 
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
@@ -92,7 +98,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
     // Set the camera position (View matrix)
-    Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, camX, camY, camZ, 0f, 1f, 0f)
+    Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, centerX, centerY, centerZ, 0f, 1f, 0f)
 
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)

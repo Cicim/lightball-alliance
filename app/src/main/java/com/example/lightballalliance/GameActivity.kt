@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableStateOf
+import com.example.lightballalliance.data.Game
 import com.example.lightballalliance.data.GameMessage
 import kotlin.math.atan2
 import kotlin.math.ceil
@@ -20,6 +21,7 @@ import kotlin.math.sqrt
 class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
   private lateinit var gLView: MyGLSurfaceView
+  private lateinit var game: Game
 
   private val gameRotation = DoubleArray(3)
   private val eulerAngles = mutableStateOf(DoubleArray(3))
@@ -101,7 +103,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         sendData()
 
         // Redraw the GLSurfaceView
-        gLView.setCamPos(
+        gLView.setCamOrientation(
           gameRotation[1],
           gameRotation[0],
           gameRotation[2]
@@ -165,6 +167,18 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
   override fun onMessage(message: GameMessage) {
     Log.d("GameActivity", ">Received: $message")
+
+    when (message) {
+      is GameMessage.GameStarted -> {
+        // Start the game
+        Log.d("GameActivity", ">>>Game started")
+
+        // Instantiate a new Game object
+        game = Game(message.players)
+        gLView.setGameHandler(game)
+      }
+      else -> { }
+    }
   }
 
   override fun onDisconnected() {
