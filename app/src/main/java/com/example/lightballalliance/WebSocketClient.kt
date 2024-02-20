@@ -1,6 +1,8 @@
 package com.example.lightballalliance
 
 import android.util.Log
+import com.example.lightballalliance.data.GameMessage
+import com.example.lightballalliance.data.parseGameMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.websocket.WebSockets
@@ -52,20 +54,17 @@ object WebSocketClient {
         while (isConnected()) {
           val message = webSocketSession?.incoming?.receive()
           if (message is Frame.Text) {
-            // Parse the JSON message that is received from the server.
-            val regex = """^\{"type":\s*"(.*)",\s*"data":\s*(.*)\}$""".toRegex()
+            val messageText = message.readText()
 
-            val matchResult = regex.find(message.readText())
-            if (matchResult != null) {
-              val (type, _) = matchResult.destructured
-
-              if (type == "ask_name") {
-                mainListener?.onMessage(type)
-              }
-              else {
-                gameListener?.onMessage(message.readText())
-              }
+            val gameMessage = try {
+              parseGameMessage(messageText)
+            } catch(e: Exception) {
+              Log.d("WebSocketClient", ">>>Error: ${e.message}")
+              continue
             }
+
+            mainListener?.onMessage(gameMessage)
+            gameListener?.onMessage(gameMessage)
           }
         }
       } catch (e: Exception) {

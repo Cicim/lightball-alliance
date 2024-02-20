@@ -6,13 +6,14 @@ import kotlinx.serialization.json.jsonPrimitive
 
 
 sealed class GameMessage {
+  // Game communications
   // game_started
   @Serializable
-  data class GameStarted(val players: List<PlayerData>)
+  data class GameStarted(val players: List<PlayerData>) : GameMessage()
   // game_over
-  data class GameOver(val reason: String)
+  data class GameOver(val reason: String) : GameMessage()
   // time_sync
-  data class TimeSync(val time: Int)
+  data class TimeSync(val time: Int) : GameMessage()
   // enemy_added
   @Serializable
   data class EnemyAdded(
@@ -23,24 +24,34 @@ sealed class GameMessage {
     val target: Vec3,
     val startTime: Int,
     val speed: Double
-  )
+  ) : GameMessage()
   // enemy_damaged
   @Serializable
-  data class EnemyDamaged(val id: Int, val health: Int)
+  data class EnemyDamaged(val id: Int, val health: Int) : GameMessage()
   // enemy_removed
-  data class EnemyRemoved(val id: Int)
+  data class EnemyRemoved(val id: Int) : GameMessage()
   // player_rotation_updated
   @Serializable
-  data class PlayerRotationUpdated(val username: String, val rotation: Vec3)
+  data class PlayerRotationUpdated(val username: String, val rotation: Vec3) : GameMessage()
   // player_score_updated
   @Serializable
-  data class PlayerScoreUpdated(val username: String, val score: Int)
+  data class PlayerScoreUpdated(val username: String, val score: Int) : GameMessage()
   // player_damaged
   @Serializable
-  data class PlayerDamaged(val username: String, val health: Int)
+  data class PlayerDamaged(val username: String, val health: Int) : GameMessage()
+
+  // Server communications
+  // ask_name
+  data class AskName(val message: String) : GameMessage()
+  // ready
+  data class Ready(val message: String) : GameMessage()
+  // waiting
+  data class Waiting(val message: String) : GameMessage()
+  // matched
+  data class Matched(val username: String) : GameMessage()
 }
 
-fun parseGameMessage(message: String): Any {
+fun parseGameMessage(message: String): GameMessage {
   // Parse the message to get type and data
   // Messages are of the form {"type": "message_type", "data": <json_data>}
   val json = Json.parseToJsonElement(message)
@@ -50,21 +61,23 @@ fun parseGameMessage(message: String): Any {
 
   return when (type) {
     "game_started" -> { Json.decodeFromString<GameMessage.GameStarted>(data) }
-    "game_over" -> {
-      GameMessage.GameOver(data)
-    }
-    "time_sync" -> {
-      GameMessage.TimeSync(data.toInt())
-    }
+    "game_over" -> { GameMessage.GameOver(Json.decodeFromString<String>(data)) }
+    "time_sync" -> { GameMessage.TimeSync(data.toInt()) }
     "enemy_added" -> { Json.decodeFromString<GameMessage.EnemyAdded>(data) }
     "enemy_damaged" -> { Json.decodeFromString<GameMessage.EnemyDamaged>(data) }
-    "enemy_removed" -> {
-      GameMessage.EnemyRemoved(data.toInt())
-    }
+    "enemy_removed" -> { GameMessage.EnemyRemoved(data.toInt()) }
     "player_rotation_updated" -> { Json.decodeFromString<GameMessage.PlayerRotationUpdated>(data) }
     "player_score_updated" -> { Json.decodeFromString<GameMessage.PlayerScoreUpdated>(data) }
     "player_damaged" -> { Json.decodeFromString<GameMessage.PlayerDamaged>(data) }
-    else -> { throw IllegalArgumentException("Invalid message type") }
+
+    "ask_name" -> { GameMessage.AskName(Json.decodeFromString<String>(data)) }
+    "waiting" -> { GameMessage.Waiting(Json.decodeFromString<String>(data)) }
+    "ready" -> { GameMessage.Ready(Json.decodeFromString<String>(data)) }
+    "matched" -> { GameMessage.Matched(Json.decodeFromString<String>(data)) }
+    else -> {
+      println("Unknown message type: $type")
+      throw IllegalArgumentException("Unknown message type: $type")
+    }
   }
 }
 

@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableStateOf
+import com.example.lightballalliance.data.GameMessage
 import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -162,7 +163,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     // Nothing to do here
   }
 
-  override fun onMessage(message: String) {
+  override fun onMessage(message: GameMessage) {
     Log.d("GameActivity", ">Received: $message")
   }
 

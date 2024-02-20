@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.lightballalliance.data.GameMessage
 import com.example.lightballalliance.ui.theme.lightballallianceTheme
 
 class MainActivity : ComponentActivity(), WebSocketListener {
@@ -93,10 +94,10 @@ class MainActivity : ComponentActivity(), WebSocketListener {
     isConnected.value = true
   }
 
-  override fun onMessage(message: String) {
+  override fun onMessage(message: GameMessage) {
     // Handle received message
     Log.d("MainActivity", ">Received: $message")
-    if (message == "ask_name") {
+    if (message is GameMessage.AskName) {
       askName.value = ""
     }
   }
