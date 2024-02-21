@@ -59,4 +59,8 @@ class Player (
   fun getPosition(): DoubleArray {
     return position
   }
+
+  fun getInitialRotation(): DoubleArray {
+    return initialRotation
+  }
 }

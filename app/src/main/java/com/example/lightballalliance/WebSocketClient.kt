@@ -81,7 +81,7 @@ object WebSocketClient {
     if (isConnected()) {
       CoroutineScope(Dispatchers.IO).launch {
         webSocketSession?.send(Frame.Text(message))
-        Log.d("WebSocketClient", ">Sent: $message")
+//        Log.d("WebSocketClient", ">Sent: $message")
       }
     }
   }

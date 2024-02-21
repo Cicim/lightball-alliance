@@ -19,6 +19,8 @@ import java.util.Timer
 import kotlin.concurrent.timer
 import kotlin.math.atan2
 import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.math.sqrt
 
 class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener {
@@ -27,6 +29,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   private var game: Game? = null
 
   private val gameRotation = DoubleArray(3)
+  private val initialGameRotation = mutableStateOf(DoubleArray(3))
   private val eulerAngles = mutableStateOf(DoubleArray(3))
   private val sensorsCalibration = mutableStateOf(DoubleArray(3))
   private val isConnected = mutableStateOf(false)
@@ -120,16 +123,43 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         // Send the orientation angles to the server.
         sendData()
 
+        // Convert the Euler angles to a quaternion
+        val calibratedSensorAngles = eulerAnglesToQuaternion(
+          gameRotation[0],
+          gameRotation[1],
+          gameRotation[2]
+        )
+
+        // Convert the initial orientation angles to a quaternion
+        val initialRotationAngles = eulerAnglesToQuaternion(
+          initialGameRotation.value[0],
+          initialGameRotation.value[1],
+          initialGameRotation.value[2]
+        )
+
+        // Multiply the quaternions
+        val finalOrientation = multiplyQuaternions(
+          initialRotationAngles,
+          calibratedSensorAngles
+        )
+
+        // Convert the final orientation to Euler angles
+//        finalOrientation[0] = finalOrientation[0] * finalOrientation[3]
+//        finalOrientation[1] = finalOrientation[1] * finalOrientation[3]
+//        finalOrientation[2] = finalOrientation[2] * finalOrientation[3]
+        val finalOrientationAngles = rotationVectorToEulerAngles(finalOrientation)
+
         // Redraw the GLSurfaceView
         gLView.setCamOrientation(
-          gameRotation[1],
-          gameRotation[0],
-          gameRotation[2]
+          finalOrientationAngles[1],
+          finalOrientationAngles[0],
+          finalOrientationAngles[2]
         )
       }
     }
   }
 
+  // Function to convert a quaternion to Euler angles (roll, pitch, and yaw)
   private fun rotationVectorToEulerAngles(v: FloatArray): DoubleArray {
     val qx = v[0].toDouble() // x * sin(theta / 2)
     val qy = v[1].toDouble() // y * sin(theta / 2)
@@ -158,6 +188,33 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     return doubleArrayOf(roll, pitch, yaw)
   }
 
+  // Function to convert Euler angles to a quaternion
+  private fun eulerAnglesToQuaternion(roll: Double, pitch: Double, yaw: Double): FloatArray {
+    val cy = cos(yaw * 0.5).toFloat()
+    val sy = sin(yaw * 0.5).toFloat()
+    val cp = cos(pitch * 0.5).toFloat()
+    val sp = sin(pitch * 0.5).toFloat()
+    val cr = cos(roll * 0.5).toFloat()
+    val sr = sin(roll * 0.5).toFloat()
+
+    val w = cr * cp * cy + sr * sp * sy
+    val x = sr * cp * cy - cr * sp * sy
+    val y = cr * sp * cy + sr * cp * sy
+    val z = cr * cp * sy - sr * sp * cy
+
+    return floatArrayOf(x, y, z, w)
+  }
+
+  // Function to multiply two quaternions
+  private fun multiplyQuaternions(q1: FloatArray, q2: FloatArray): FloatArray {
+    val x = q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1]
+    val y = q1[3] * q2[1] - q1[0] * q2[2] + q1[1] * q2[3] + q1[2] * q2[0]
+    val z = q1[3] * q2[2] + q1[0] * q2[1] - q1[1] * q2[0] + q1[2] * q2[3]
+    val w = q1[3] * q2[3] - q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2]
+
+    return floatArrayOf(x, y, z, w)
+  }
+
   private fun sendData() {
     if (!isConnected.value || game == null) {
       return
@@ -184,7 +241,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   }
 
   override fun onMessage(message: GameMessage) {
-    Log.d("GameActivity", ">Received: $message")
+//    Log.d("GameActivity", ">Received: $message")
 
     when (message) {
       is GameMessage.GameStarted -> {
@@ -198,11 +255,16 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         // Set the initial position of the camera
         val player = game?.getPlayer(WebSocketClient.playerName.value)
         if (player != null) {
+          Log.d("PlayerPos", ">>>Initial position: ${player.getPosition().contentToString()}")
+
           gLView.setInitialEye(
             player.getPosition()[0].toFloat(),
             player.getPosition()[1].toFloat(),
             player.getPosition()[2].toFloat()
           )
+
+          // Get the initial orientation of the player
+          initialGameRotation.value = player.getInitialRotation().clone()
         }
       }
       is GameMessage.TimeSync -> {

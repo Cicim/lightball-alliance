@@ -64,9 +64,9 @@ class MyGLRenderer : GLSurfaceView.Renderer {
   // Function to set the camera orientation according to the orientation angles
   // of the device, using roll, pitch, and yaw
   fun setCamOrientation(roll: Double, pitch: Double, yaw: Double) {
-    centerX = eyeX - sin(yaw).toFloat() * cos(pitch).toFloat()
+    centerX = eyeX + cos(yaw).toFloat() * cos(pitch).toFloat()
     centerY = eyeY + sin(pitch).toFloat()
-    centerZ = eyeZ - cos(yaw).toFloat() * cos(pitch).toFloat()
+    centerZ = eyeZ - sin(yaw).toFloat() * cos(pitch).toFloat()
   }
 
   // Function to set the initial position of the camera (eye)

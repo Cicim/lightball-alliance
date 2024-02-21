@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity(), WebSocketListener {
 
   override fun onMessage(message: GameMessage) {
     // Handle received message
-    Log.d("MainActivity", ">Received: $message")
+//    Log.d("MainActivity", ">Received: $message")
     if (message is GameMessage.AskName) {
       WebSocketClient.playerName.value = ""
     }
