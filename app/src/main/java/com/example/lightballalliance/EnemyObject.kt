@@ -88,7 +88,7 @@ class EnemyObject {
     }
   }
 
-  fun draw(mvpMatrix: FloatArray) {
+  fun draw(mvpMatrix: FloatArray, color: FloatArray) {
     // get handle to shape's transformation matrix
     vPMatrixHandle = GLES20.glGetUniformLocation(mProgram, "uMVPMatrix")
 
@@ -114,8 +114,7 @@ class EnemyObject {
       // get handle to fragment shader's vColor member
       mColorHandle = GLES20.glGetUniformLocation(mProgram, "vColor").also { colorHandle ->
 
-        // Set color for drawing the triangle
-        val color = floatArrayOf(0.63671875f, 0.76953125f, 0.22265625f, 1.0f)
+        // Set color for drawing the object
         GLES20.glUniform4fv(colorHandle, 1, color, 0)
       }
 

@@ -4,16 +4,24 @@ class Enemy (
   // Constructor
   private var id: Int,
   private var health: Int,
-  private var color: Int,
+  private var hexColor: Int,
   private var startTime: Int,
   private var speed: Double,
   private var source: DoubleArray,
   private var target: DoubleArray
 ) {
+  private var color: FloatArray
 
   /**
    * Methods to update the enemy's data.
    */
+
+  init {
+    val r = ((hexColor shr 16) and 0xFF) / 255.0f
+    val g = ((hexColor shr 8) and 0xFF) / 255.0f
+    val b = (hexColor and 0xFF) / 255.0f
+    color = floatArrayOf(r, g, b, 1.0f)
+  }
 
   fun updateHealth(health: Int) {
     this.health = health
@@ -27,7 +35,7 @@ class Enemy (
     return health
   }
 
-  fun getColor(): Int {
+  fun getColor(): FloatArray {
     return color
   }
 

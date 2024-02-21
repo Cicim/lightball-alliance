@@ -36,6 +36,11 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   fun setCamOrientation(x: Double, y: Double, z: Double) {
     renderer.setCamOrientation(x, y, z)
   }
+
+  // Function to set the initial position of the camera (eye)
+  fun setInitialEye(x: Float, y: Float, z: Float) {
+    renderer.setInitialEye(x, y, z)
+  }
 }
 
 class MyGLRenderer : GLSurfaceView.Renderer {
@@ -62,6 +67,13 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     centerX = eyeX - sin(yaw).toFloat() * cos(pitch).toFloat()
     centerY = eyeY + sin(pitch).toFloat()
     centerZ = eyeZ - cos(yaw).toFloat() * cos(pitch).toFloat()
+  }
+
+  // Function to set the initial position of the camera (eye)
+  fun setInitialEye(x: Float, y: Float, z: Float) {
+    eyeX = x
+    eyeY = y
+    eyeZ = z
   }
 
   // Function to set the handler for the game
@@ -106,7 +118,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
         Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
 
         // Draw shape
-        enemyObject.draw(scratch)
+        enemyObject.draw(scratch, it.getColor())
       }
     } catch (e: Exception) {
       Log.e("MyGLRenderer", "Error: ${e.message}")
@@ -120,7 +132,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
 
     // this projection matrix is applied to object coordinates
     // in the onDrawFrame() method
-    Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1f, 1f, 1f, 7f)
+    Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1f, 1f, 1f, 12f)
   }
 }
 

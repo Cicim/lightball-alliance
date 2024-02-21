@@ -61,8 +61,8 @@ class Game (
   }
 
   // Update the time.
-  fun increaseTime() {
-    time += 100
+  fun increaseTime(add: Int) {
+    time += add
   }
 
 

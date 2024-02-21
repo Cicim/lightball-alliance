@@ -27,8 +27,6 @@ import com.example.lightballalliance.ui.theme.lightballallianceTheme
 class MainActivity : ComponentActivity(), WebSocketListener {
   private val isConnected = mutableStateOf(false)
   private val address = mutableStateOf("ws://10.0.2.2:8080")
-
-  private val askName = mutableStateOf("NO_NAME")
   private val nameConfirmed = mutableStateOf(false)
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,11 +52,11 @@ class MainActivity : ComponentActivity(), WebSocketListener {
             )
 
             NameTextBox(
-              askName = askName.value,
-              onNameChange = { askName.value = it },
+              askName = WebSocketClient.playerName.value,
+              onNameChange = { WebSocketClient.playerName.value = it },
               isConnected = isConnected.value,
               confirmName = {
-                WebSocketClient.send(askName.value)
+                WebSocketClient.send(WebSocketClient.playerName.value)
                 nameConfirmed.value = true
                 navigateToGameActivity()
               }
@@ -98,7 +96,7 @@ class MainActivity : ComponentActivity(), WebSocketListener {
     // Handle received message
     Log.d("MainActivity", ">Received: $message")
     if (message is GameMessage.AskName) {
-      askName.value = ""
+      WebSocketClient.playerName.value = ""
     }
   }
 

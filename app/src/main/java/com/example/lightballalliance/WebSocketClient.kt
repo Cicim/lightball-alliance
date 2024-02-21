@@ -1,6 +1,7 @@
 package com.example.lightballalliance
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import com.example.lightballalliance.data.GameMessage
 import com.example.lightballalliance.data.parseGameMessage
 import io.ktor.client.HttpClient
@@ -24,6 +25,8 @@ object WebSocketClient {
   private var mainListener: WebSocketListener? = null
   private var gameListener: WebSocketListener? = null
   private var job: Job? = null
+
+  val playerName = mutableStateOf("NO_NAME")
 
   private lateinit var client: HttpClient
 

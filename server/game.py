@@ -266,12 +266,17 @@ class Game:
         y = random.uniform(-3, 3)
         z = random.uniform(-4, 4)
 
+        r = random.randint(96, 255) * 0x10000
+        g = random.randint(96, 255) * 0x100
+        b = random.randint(96, 255)
+        color = r + g + b
+
         # Create the enemy
         enemy = Enemy(
             id=self.last_enemy_id,
             # TODO Define color and health based on some logic
             health=1,
-            color=0xFF0000,
+            color=color,
             source=Vec3(x, y, z),
             target=player.position,
             start_time=self.time,

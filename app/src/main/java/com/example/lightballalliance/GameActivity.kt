@@ -15,6 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import com.example.lightballalliance.data.Enemy
 import com.example.lightballalliance.data.Game
 import com.example.lightballalliance.data.GameMessage
+import java.util.Timer
+import kotlin.concurrent.timer
 import kotlin.math.atan2
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -30,6 +32,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   private val isConnected = mutableStateOf(false)
   private val orientationViewModel: OrientationViewModel by viewModels()
 
+  private var timer: Timer = Timer()
+  private val timerPeriod = 20L
+
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -44,6 +49,15 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
     // Send the player_ready message
     WebSocketClient.send("""{"type": "player_ready", "data": ""}""")
+
+    // Start the timer to update the game state
+    timer = timer("updateGameStateTimer",
+      false,
+      0,
+      timerPeriod
+    ) {
+      game?.increaseTime(timerPeriod.toInt())
+    }
   }
 
   override fun onTouchEvent(e: MotionEvent): Boolean {
@@ -180,6 +194,16 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         // Instantiate a new Game object
         game = Game(message.players)
         gLView.setGameHandler(game!!)
+
+        // Set the initial position of the camera
+        val player = game?.getPlayer(WebSocketClient.playerName.value)
+        if (player != null) {
+          gLView.setInitialEye(
+            player.getPosition()[0].toFloat(),
+            player.getPosition()[1].toFloat(),
+            player.getPosition()[2].toFloat()
+          )
+        }
       }
       is GameMessage.TimeSync -> {
         // Synchronize the time with the server
@@ -196,6 +220,18 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           doubleArrayOf(message.target.x, message.target.y, message.target.z)
         )
         game?.addEnemy(enemy)
+      }
+      is GameMessage.EnemyRemoved -> {
+        game?.removeEnemy(message.id)
+      }
+      is GameMessage.GameOver -> {
+        Log.d("GameActivity", ">>>Game over")
+
+        timer.cancel()
+
+        // Go back to the main activity stopping the current activity
+//        intent = Intent(this, MainActivity::class.java)
+//        startActivity(intent)
       }
 
       else -> { }
