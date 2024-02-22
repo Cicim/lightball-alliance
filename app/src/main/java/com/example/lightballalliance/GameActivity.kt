@@ -17,21 +17,33 @@ import com.example.lightballalliance.data.Game
 import com.example.lightballalliance.data.GameMessage
 import java.util.Timer
 import kotlin.concurrent.timer
+import kotlin.math.abs
+import kotlin.math.asin
 import kotlin.math.atan2
-import kotlin.math.ceil
 import kotlin.math.cos
+import kotlin.math.sign
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
   private lateinit var gLView: MyGLSurfaceView
   private var game: Game? = null
 
-  private val gameRotation = DoubleArray(3)
+  // Current orientation angles (calibrated)
+  private var gameRotation = DoubleArray(3)
+
   private val initialGameRotation = mutableStateOf(DoubleArray(3))
-  private val eulerAngles = mutableStateOf(DoubleArray(3))
-  private val sensorsCalibration = mutableStateOf(DoubleArray(3))
+
+  // Current orientation angles (uncalibrated)
+  private var currentEuler = DoubleArray(3)
+  // Current orientation quaternion (uncalibrated)
+  private var currentQuat = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
+
+  // Orientation angles when the device was calibrated.
+  private var calibrationEuler = DoubleArray(3)
+  // Quaternion to calibrate the sensors
+  private var calibrationQuat = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
+
   private val isConnected = mutableStateOf(false)
   private val orientationViewModel: OrientationViewModel by viewModels()
 
@@ -44,7 +56,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     // Initialize the variables
     sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
     WebSocketClient.setGameListener(this@GameActivity)
-    sensorsCalibration.value = DoubleArray(3)
+    calibrationEuler = DoubleArray(3)
     isConnected.value = true
 
     gLView = MyGLSurfaceView(this)
@@ -64,8 +76,18 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   }
 
   override fun onTouchEvent(e: MotionEvent): Boolean {
-    // Calibrate the sensors
-    sensorsCalibration.value = eulerAngles.value.copyOf()
+    // Copy the current orientation angles to the calibration array
+    calibrationEuler = currentEuler.copyOf()
+
+    // Store the conjugate of the quaternion to calibrate the sensors
+    calibrationQuat[0] = -currentQuat[0]
+    calibrationQuat[1] = -currentQuat[1]
+    calibrationQuat[2] = -currentQuat[2]
+    calibrationQuat[3] = currentQuat[3]
+
+    // Recompute the orientation angles
+    recomputePlayerAngle()
+
     return true
   }
 
@@ -105,85 +127,94 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   // consider storing these readings as unit vectors.
   override fun onSensorChanged(event: SensorEvent) {
     if (event.sensor.type == Sensor.TYPE_GAME_ROTATION_VECTOR) {
-      val inputQuaternion = event.values
-      eulerAngles.value = rotationVectorToEulerAngles(inputQuaternion)
+      // The sensor reading outputs:
+      // - 2nd quaternion component x: sin(θ/2) * x
+      // - 3rd quaternion component y: sin(θ/2) * y
+      // - 4th quaternion component z: sin(θ/2) * z
+      // - 1st quaternion component w: cos(θ/2)
+      // - reading accuracy in radians
+      val sensorReading = event.values
+      // Save the current quaternion
+      currentQuat[0] = sensorReading[0]
+      currentQuat[1] = sensorReading[1]
+      currentQuat[2] = sensorReading[2]
+      currentQuat[3] = sensorReading[3]
 
-      if (!eulerAngles.value.contentEquals(gameRotation)) {
-        gameRotation[0] = eulerAngles.value[0] - sensorsCalibration.value[0] // roll (z)
-        gameRotation[1] = eulerAngles.value[1] - sensorsCalibration.value[1] // pitch (x)
-        gameRotation[2] = eulerAngles.value[2] - sensorsCalibration.value[2] // yaw (y)
+      // The quaternion is converted to angles to be sent to the server
+      val newOrientation = rotationVectorToEulerAngles(sensorReading)
+      val difference = abs(newOrientation[0] - currentEuler[0]) +
+        abs(newOrientation[1] - currentEuler[1]) +
+        abs(newOrientation[2] - currentEuler[2]);
+      currentEuler = newOrientation
 
-        // Update the UI with the new orientation angles
-        orientationViewModel.updateOrientation(
-          gameRotation[0],
-          gameRotation[1],
-          gameRotation[2]
-        )
-
-        // Send the orientation angles to the server.
-        sendData()
-
-        // Convert the Euler angles to a quaternion
-        val calibratedSensorAngles = eulerAnglesToQuaternion(
-          gameRotation[0],
-          gameRotation[1],
-          gameRotation[2]
-        )
-
-        // Convert the initial orientation angles to a quaternion
-        val initialRotationAngles = eulerAnglesToQuaternion(
-          initialGameRotation.value[0],
-          initialGameRotation.value[1],
-          initialGameRotation.value[2]
-        )
-
-        // Multiply the quaternions
-        val finalOrientation = multiplyQuaternions(
-          initialRotationAngles,
-          calibratedSensorAngles
-        )
-
-        // Convert the final orientation to Euler angles
-//        finalOrientation[0] = finalOrientation[0] * finalOrientation[3]
-//        finalOrientation[1] = finalOrientation[1] * finalOrientation[3]
-//        finalOrientation[2] = finalOrientation[2] * finalOrientation[3]
-        val finalOrientationAngles = rotationVectorToEulerAngles(finalOrientation)
-
-        // Redraw the GLSurfaceView
-        gLView.setCamOrientation(
-          finalOrientationAngles[1],
-          finalOrientationAngles[0],
-          finalOrientationAngles[2]
-        )
+      // Only update everything if the orientation angles have changed
+      if (difference > 0.02) {
+        recomputePlayerAngle()
       }
     }
   }
 
+  private fun recomputePlayerAngle() {
+    // Calibrate the sensors. This is done by setting the initial orientation
+    // as the zero point and subtracting it from the current orientation.
+    val calibratedQuat = multiplyQuaternions(
+      calibrationQuat,
+      currentQuat
+    )
+
+    // Update the game rotation angles
+    gameRotation = rotationVectorToEulerAngles(calibratedQuat)
+
+    // Send the orientation angles to the server (yes, before recalculating the final orientation)
+    // The server wants the angles only as a rotation compared to the initial orientation.
+    sendData()
+
+    // Convert the initial orientation angles to a quaternion
+    val initialRotationQuat = eulerAnglesToQuaternion(
+      initialGameRotation.value[0] / 2,
+      initialGameRotation.value[1] / 2,
+      initialGameRotation.value[2] / 2
+    )
+
+    // Multiply the quaternions
+    val finalOrientation = multiplyQuaternions(
+      calibratedQuat,
+      initialRotationQuat
+    )
+
+    val finalOrientationAngles = rotationVectorToEulerAngles(finalOrientation)
+
+    // Redraw the GLSurfaceView
+    gLView.setCamOrientation(
+      finalOrientationAngles[2],
+      finalOrientationAngles[0],
+      finalOrientationAngles[1]
+    )
+  }
+
   // Function to convert a quaternion to Euler angles (roll, pitch, and yaw)
   private fun rotationVectorToEulerAngles(v: FloatArray): DoubleArray {
-    val qx = v[0].toDouble() // x * sin(theta / 2)
-    val qy = v[1].toDouble() // y * sin(theta / 2)
-    val qz = v[2].toDouble() // z * sin(theta / 2)
+    val qx = v[0].toDouble()
+    val qy = v[1].toDouble()
+    val qz = v[2].toDouble()
+    val qw = v[3].toDouble()
 
-    val norm = sqrt(qx * qx + qy * qy + qz * qz)
-    if (norm == 0.0) {
-      return doubleArrayOf(0.0, 0.0, 0.0)
+    val sinr_cosp = 2 * (qw * qx + qy * qz)
+    val cosr_cosp = 1 - 2 * (qx * qx + qy * qy)
+    val roll = atan2(sinr_cosp, cosr_cosp)
+
+    // pitch / y
+    val sinp = 2 * (qw * qy - qz * qx)
+    val pitch = if (abs(sinp) >= 1) {
+      Math.PI / 2 * sign(sinp)
+    } else {
+      asin(sinp)
     }
 
-    // cos(theta / 2)
-    val qw = sqrt(1.0 - norm * norm)
-
-    val sinRcosP = 2 * (qw * qx + qy * qz)
-    val cosRcosP = 1 - 2 * (qx * qx + qy * qy)
-    val roll = ceil(atan2(sinRcosP, cosRcosP) * 1000) / 1000
-
-    val sinP = sqrt(1 + 2 * (qw * qy - qx * qz))
-    val cosP = sqrt(1 - 2 * (qw * qy - qx * qz))
-    val pitch = ceil((atan2(sinP, cosP) - Math.PI / 2) * 1000) / 1000
-
-    val sinYcosP = 2 * (qw * qz + qx * qy)
-    val cosYcosP = 1 - 2 * (qy * qy + qz * qz)
-    val yaw = ceil(atan2(sinYcosP, cosYcosP) * 1000) / 1000
+    // yaw / z
+    val siny_cosp = 2 * (qw * qz + qx * qy)
+    val cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
+    val yaw = atan2(siny_cosp, cosy_cosp)
 
     return doubleArrayOf(roll, pitch, yaw)
   }
@@ -222,8 +253,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
     // Send the orientation angles to the server.
     val x = "%.3f".format(gameRotation[0]).replace(",", ".")
-    val z = "%.3f".format(-gameRotation[1]).replace(",", ".")
-    val y = "%.3f".format(gameRotation[2]).replace(",", ".")
+    val y = "%.3f".format(gameRotation[1]).replace(",", ".")
+    val z = "%.3f".format(-gameRotation[2]).replace(",", ".")
 
     val message = """{"type": "player_rotation_updated", "data": {"x": $x, "y": $y, "z": $z}}"""
 
