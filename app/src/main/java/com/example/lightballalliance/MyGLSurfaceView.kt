@@ -45,6 +45,7 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 
 class MyGLRenderer : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
+  private lateinit var shootButton: ButtonObject
   private var game: Game? = null
 
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
@@ -87,6 +88,9 @@ class MyGLRenderer : GLSurfaceView.Renderer {
 
     // Initialize the enemy object
     enemyObject = EnemyObject()
+
+    // Initialize the shoot button object
+    shootButton = ButtonObject(0.0f, -0.9f, 0.1f)
   }
 
   override fun onDrawFrame(unused: GL10) {
@@ -101,6 +105,10 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
+    // Draw the shoot button
+    shootButton.draw()
+
+    // Draw the enemies
     if (game == null) {
       return
     }
@@ -129,6 +137,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     GLES20.glViewport(0, 0, width, height)
 
     val ratio: Float = width.toFloat() / height.toFloat()
+    shootButton.setRatio(ratio)
 
     // this projection matrix is applied to object coordinates
     // in the onDrawFrame() method
