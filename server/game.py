@@ -243,7 +243,7 @@ class Game:
             cosa = RADIUS * math.cos(angle)
 
             position = Vec3(cosa, 0, sina)
-            rotation = Vec3(0, math.pi/2 - angle, 0)
+            rotation = Vec3(0, angle + math.pi, 0)
 
             player = Player(username)
             player.position = position

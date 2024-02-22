@@ -171,9 +171,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
     // Convert the initial orientation angles to a quaternion
     val initialRotationQuat = eulerAnglesToQuaternion(
-      initialGameRotation.value[0] / 2,
-      initialGameRotation.value[1] / 2,
-      initialGameRotation.value[2] / 2
+      initialGameRotation.value[0],
+      initialGameRotation.value[1],
+      initialGameRotation.value[2]
     )
 
     // Multiply the quaternions
