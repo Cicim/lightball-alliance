@@ -156,7 +156,7 @@ class TexturedSquareObject (
       GLES20.glTexParameteri(
         GLES20.GL_TEXTURE_2D,
         GLES20.GL_TEXTURE_MIN_FILTER,
-        GLES20.GL_LINEAR
+        GLES20.GL_NEAREST
       )
       GLES20.glTexParameteri(
         GLES20.GL_TEXTURE_2D,

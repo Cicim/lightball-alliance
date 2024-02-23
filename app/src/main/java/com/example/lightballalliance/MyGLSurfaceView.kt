@@ -87,6 +87,11 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
     // Set the background frame color
     GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+    // Enable depth test
+    GLES20.glEnable(GLES20.GL_DEPTH_TEST)
+    // Enable transparency
+    GLES20.glEnable(GLES20.GL_BLEND)
+    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
     // Initialize the enemy object
     enemyObject = EnemyObject()
@@ -96,28 +101,19 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     // Initialize the gun sight object
     gunSight = TexturedSquareObject(context, "gunSight_wh.png", 9f/16f, 0.05f, 0f, 0f)
-
-    // Enable transparency
-    GLES20.glEnable(GLES20.GL_BLEND)
   }
 
   override fun onDrawFrame(unused: GL10) {
     val scratch = FloatArray(16)
 
     // Redraw background color
-    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
     // Set the camera position (View matrix)
     Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, centerX, centerY, centerZ, 0f, 1f, 0f)
 
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
-
-    // Draw the shoot button
-    shootButton.draw()
-
-    // Draw the gun sight
-    gunSight.draw()
 
     // Draw the enemies
     if (game == null) {
@@ -142,6 +138,15 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     } catch (e: Exception) {
       Log.e("MyGLRenderer", "Error: ${e.message}")
     }
+
+    // Clear the depth buffer
+    GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
+
+    // Draw the shoot button
+    shootButton.draw()
+
+    // Draw the gun sight
+    gunSight.draw()
   }
 
   override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {
