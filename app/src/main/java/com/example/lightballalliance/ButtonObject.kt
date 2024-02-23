@@ -1,91 +1,194 @@
 package com.example.lightballalliance
 
+import android.content.Context
+import android.graphics.BitmapFactory
 import android.opengl.GLES20
+import android.opengl.GLUtils
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
-import kotlin.math.cos
-import kotlin.math.sin
+
+const val COORDS_PER_VERTEX_2D = 2
+const val COORDS_PER_TEXTURE_2D = 2
 
 class ButtonObject (
-  centerX: Float,
-  centerY: Float,
-  radius: Float
+  private val context: Context,
+  private var aspectRatio: Float = 9f / 16f,
+  squareSize: Float = 0.1f,
+  centerX: Float = 0.0f,
+  centerY: Float = -0.9f
 ) {
-  private var buttonVertexBuffer: FloatBuffer
-  private var buttonProgram: Int = 0
-  private var buttonPositionHandle: Int = 0
-  private var buttonColorHandle: Int = 0
-  private var ratio: Float = 9/16f
+  // Coordinates of the square object
+  private val squareCoords = floatArrayOf(
+    (centerX - squareSize) / aspectRatio, (centerY + squareSize), // top left
+    (centerX - squareSize) / aspectRatio, (centerY - squareSize), // bottom left
+    (centerX + squareSize) / aspectRatio, (centerY - squareSize), // bottom right
+    (centerX + squareSize) / aspectRatio, (centerY + squareSize) // top right
+  )
 
-  private val buttonFragmentShaderCode =
-    "precision mediump float;" +
-    "uniform vec4 vColor;" +
-    "void main() {" +
-    "  gl_FragColor = vColor;" +
-    "}"
+  // Texture coordinates
+  private val textureCoords = floatArrayOf(
+    0.0f, 0.0f, // top left
+    0.0f, 1.0f, // bottom left
+    1.0f, 1.0f, // bottom right
+    1.0f, 0.0f // top right
+  )
 
-  private val buttonVertexShaderCode =
-    "attribute vec4 vPosition;" +
-    "void main() {" +
-    "  gl_Position = vPosition;" +
-    "}"
+  // Number of coordinates per vertex in this array
+  private val vertexStride = COORDS_PER_VERTEX_2D * 4 // 4 bytes per vertex
+  private val textureStride = COORDS_PER_TEXTURE_2D * 4 // 4 bytes per vertex
 
-  init {
-    // Calculate the vertices of the button
-    val segments = 100
-    val vertices = FloatArray((segments + 2) * 2)
-    vertices[0] = centerX
-    vertices[1] = centerY
+  private val drawOrder = shortArrayOf(0, 1, 2, 0, 2, 3) // order to draw vertices
 
-    // Set the radius of the button so that it is always a circle and not an ellipse
-    // using the device's screen aspect ratio
-    for (i in 0..segments) {
-      val theta = (2.0 * Math.PI * i / segments).toFloat()
-      vertices[(i + 1) * 2] = centerX + radius * cos(theta) / ratio
-      vertices[(i + 1) * 2 + 1] = centerY + radius * sin(theta)
+  private var vertexBuffer: FloatBuffer =
+    // (number of coordinate values * 4 bytes per float)
+    ByteBuffer.allocateDirect(squareCoords.size * 4).run {
+      order(ByteOrder.nativeOrder())
+      asFloatBuffer().apply {
+        put(squareCoords)
+        position(0)
+      }
     }
 
-    // Initialize the button vertex buffer
-    val bb = ByteBuffer.allocateDirect(vertices.size * 4)
-    bb.order(ByteOrder.nativeOrder())
-    buttonVertexBuffer = bb.asFloatBuffer()
-    buttonVertexBuffer.put(vertices)
-    buttonVertexBuffer.position(0)
+  private var textureBuffer: FloatBuffer =
+    // (number of coordinate values * 4 bytes per float)
+    ByteBuffer.allocateDirect(textureCoords.size * 4).run {
+      order(ByteOrder.nativeOrder())
+      asFloatBuffer().apply {
+        put(textureCoords)
+        position(0)
+      }
+    }
 
-    // Load and compile the shader programs for the button
-    val vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, buttonVertexShaderCode)
-    val fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, buttonFragmentShaderCode)
+  private val vertexShaderCode =
+    "attribute vec4 vPosition;" +
+    "attribute vec2 aTexCoord;" +
+    "varying vec2 vTexCoord;" +
+    "void main() {" +
+    "  gl_Position = vPosition;" +
+    "  vTexCoord = aTexCoord;" +
+    "}"
 
-    // Create and link the button program
-    buttonProgram = GLES20.glCreateProgram().also {
+  private val fragmentShaderCode =
+    "precision mediump float;" +
+    "uniform sampler2D uTexture;" +
+    "varying vec2 vTexCoord;" +
+    "void main() {" +
+    "  gl_FragColor = texture2D(uTexture, vTexCoord);" +
+    "}"
+
+  private var program: Int = 0
+
+  private var positionHandle: Int = 0
+  private var textureHandle: Int = 0
+  private var textureId: Int = 0
+
+  init {
+    val vertexShader: Int = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
+    val fragmentShader: Int = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode)
+
+    program = GLES20.glCreateProgram().also {
       GLES20.glAttachShader(it, vertexShader)
       GLES20.glAttachShader(it, fragmentShader)
       GLES20.glLinkProgram(it)
     }
+
+    loadTexture()
   }
 
   fun draw() {
-    // Use the button program
-    GLES20.glUseProgram(buttonProgram)
+    GLES20.glUseProgram(program)
 
-    // Set the position attribute for the button
-    buttonPositionHandle = GLES20.glGetAttribLocation(buttonProgram, "vPosition")
-    GLES20.glVertexAttribPointer(buttonPositionHandle, 2, GLES20.GL_FLOAT, false, 0, buttonVertexBuffer)
-    GLES20.glEnableVertexAttribArray(buttonPositionHandle)
+    positionHandle = GLES20.glGetAttribLocation(program, "vPosition").also {
+      GLES20.glEnableVertexAttribArray(it)
+      GLES20.glVertexAttribPointer(
+        it,
+        COORDS_PER_VERTEX_2D,
+        GLES20.GL_FLOAT,
+        false,
+        vertexStride,
+        vertexBuffer
+      )
+    }
 
-    // Set the color uniform for the button
-    buttonColorHandle = GLES20.glGetUniformLocation(buttonProgram, "vColor")
-    GLES20.glUniform4fv(buttonColorHandle, 1, floatArrayOf(0.5f, 0.5f, 0.5f, 1.0f), 0)
+    textureHandle = GLES20.glGetAttribLocation(program, "aTexCoord").also {
+      GLES20.glEnableVertexAttribArray(it)
+      GLES20.glVertexAttribPointer(
+        it,
+        COORDS_PER_TEXTURE_2D,
+        GLES20.GL_FLOAT,
+        false,
+        textureStride,
+        textureBuffer
+      )
+    }
 
-    // Draw the button
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, (buttonVertexBuffer.capacity() / 2))
+    GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
+    GLES20.glUniform1i(textureHandle, 0)
 
-    // Disable vertex array
-    GLES20.glDisableVertexAttribArray(buttonPositionHandle)
+    GLES20.glDrawElements(
+      GLES20.GL_TRIANGLES, drawOrder.size,
+      GLES20.GL_UNSIGNED_SHORT, drawListBuffer
+    )
+
+    GLES20.glDisableVertexAttribArray(positionHandle)
+    GLES20.glDisableVertexAttribArray(textureHandle)
+  }
+
+  private fun loadTexture() {
+    val textureHandles = IntArray(1)
+    GLES20.glGenTextures(1, textureHandles, 0)
+
+    if (textureHandles[0] != 0) {
+      val bitmap =
+        try {
+          BitmapFactory.decodeStream(context.assets.open("shootButton.png"))
+        } catch (e: IOException) {
+          e.printStackTrace()
+          return
+        }
+
+      GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandles[0])
+
+      GLES20.glTexParameteri(
+        GLES20.GL_TEXTURE_2D,
+        GLES20.GL_TEXTURE_MIN_FILTER,
+        GLES20.GL_LINEAR
+      )
+      GLES20.glTexParameteri(
+        GLES20.GL_TEXTURE_2D,
+        GLES20.GL_TEXTURE_MAG_FILTER,
+        GLES20.GL_LINEAR
+      )
+
+      GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0)
+
+      bitmap.recycle()
+    }
+
+    textureId = textureHandles[0]
+  }
+
+  private fun loadShader(type: Int, shaderCode: String): Int {
+    return GLES20.glCreateShader(type).also { shader ->
+      GLES20.glShaderSource(shader, shaderCode)
+      GLES20.glCompileShader(shader)
+    }
   }
 
   fun setRatio(ratio: Float) {
-    this.ratio = ratio
+    this.aspectRatio = ratio
   }
+
+  private val drawListBuffer = ByteBuffer
+    .allocateDirect(squareCoords.size * 2)
+    .run {
+      order(ByteOrder.nativeOrder())
+      asShortBuffer().apply {
+        put(drawOrder)
+        position(0)
+      }
+    }
 }

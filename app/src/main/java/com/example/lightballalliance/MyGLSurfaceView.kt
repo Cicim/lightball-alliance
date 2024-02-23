@@ -21,7 +21,7 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
     // Render the view only when there is a change in the drawing data
     // renderMode = GLSurfaceView.RENDERMODE_WHEN_DIRTY
 
-    renderer = MyGLRenderer()
+    renderer = MyGLRenderer(context)
 
     // Set the Renderer for drawing on the GLSurfaceView
     setRenderer(renderer)
@@ -43,7 +43,7 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   }
 }
 
-class MyGLRenderer : GLSurfaceView.Renderer {
+class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
   private lateinit var shootButton: ButtonObject
   private var game: Game? = null
@@ -90,7 +90,7 @@ class MyGLRenderer : GLSurfaceView.Renderer {
     enemyObject = EnemyObject()
 
     // Initialize the shoot button object
-    shootButton = ButtonObject(0.0f, -0.9f, 0.1f)
+    shootButton = ButtonObject(context)
   }
 
   override fun onDrawFrame(unused: GL10) {

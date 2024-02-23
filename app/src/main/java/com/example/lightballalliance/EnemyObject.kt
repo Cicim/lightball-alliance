@@ -6,7 +6,7 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 // Number of coordinates per vertex
-const val COORDS_PER_VERTEX = 3
+const val COORDS_PER_VERTEX_3D = 3
 
 class EnemyObject {
   private var cubeCoords = floatArrayOf(
@@ -67,8 +67,8 @@ class EnemyObject {
   private var mColorHandle: Int = 0
   private var vPMatrixHandle: Int = 0 // Use to access and set the view transformation
 
-  private val vertexCount: Int = cubeCoords.size / COORDS_PER_VERTEX
-  private val vertexStride: Int = COORDS_PER_VERTEX * 4 // 4 bytes per vertex
+  private val vertexCount: Int = cubeCoords.size / COORDS_PER_VERTEX_3D
+  private val vertexStride: Int = COORDS_PER_VERTEX_3D * 4 // 4 bytes per vertex
 
   init {
     val vertexShader: Int = loadShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode)
@@ -104,7 +104,7 @@ class EnemyObject {
       // Prepare the triangle coordinate data
       GLES20.glVertexAttribPointer(
         it,
-        COORDS_PER_VERTEX,
+        COORDS_PER_VERTEX_3D,
         GLES20.GL_FLOAT,
         false,
         vertexStride,
