@@ -31,8 +31,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
   // Current orientation angles (calibrated)
   private var gameRotation = DoubleArray(3)
-
-  private val initialGameRotation = mutableStateOf(DoubleArray(3))
+  // Rotation the player should have when calibrated
+  private var initialGameRotation = DoubleArray(3)
 
   // Current orientation angles (uncalibrated)
   private var currentEuler = DoubleArray(3)
@@ -171,9 +171,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
     // Convert the initial orientation angles to a quaternion
     val initialRotationQuat = eulerAnglesToQuaternion(
-      initialGameRotation.value[0],
-      initialGameRotation.value[1],
-      initialGameRotation.value[2]
+      initialGameRotation[0],
+      initialGameRotation[1],
+      initialGameRotation[2]
     )
 
     // Multiply the quaternions
@@ -188,7 +188,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     gLView.setCamOrientation(
       finalOrientationAngles[2],
       finalOrientationAngles[0],
-      finalOrientationAngles[1]
+      cos(initialGameRotation[1]) * finalOrientationAngles[1]
     )
   }
 
@@ -295,7 +295,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           )
 
           // Get the initial orientation of the player
-          initialGameRotation.value = player.getInitialRotation().clone()
+          initialGameRotation = player.getInitialRotation().clone()
         }
       }
       is GameMessage.TimeSync -> {

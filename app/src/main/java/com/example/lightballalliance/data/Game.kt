@@ -1,5 +1,7 @@
 package com.example.lightballalliance.data
 
+import android.util.Log
+
 class Game (
   playersData: List<PlayerData>
 ) {
@@ -7,7 +9,12 @@ class Game (
   private var enemies: MutableList<Enemy> = mutableListOf()
   private var time: Int = 0
 
+
   init {
+    Log.d("Game", "Game created")
+    Log.d("Game", "Player 0: ${playersData[0]}")
+    Log.d("Game", "Player 1: ${playersData[1]}")
+
     // Initialize the variables
     for (data in playersData) {
       val position = doubleArrayOf(data.position.x, data.position.y, data.position.z)
@@ -17,6 +24,10 @@ class Game (
       val player = Player(data.username, position, rotation, initialRotation)
       players.add(player)
     }
+
+    // Create an enemy that stays at the origin.
+    val enemy = Enemy(999, 100, 0xFFFFFF, 0, 0.0, doubleArrayOf(0.0, 0.0, 0.0), doubleArrayOf(0.0, 0.0, 0.0))
+    enemies.add(enemy)
   }
 
 
