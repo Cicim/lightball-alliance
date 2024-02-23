@@ -45,7 +45,9 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
-  private lateinit var shootButton: ButtonObject
+  private lateinit var shootButton: TexturedSquareObject
+  private lateinit var gunSight: TexturedSquareObject
+
   private var game: Game? = null
 
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
@@ -90,7 +92,13 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     enemyObject = EnemyObject()
 
     // Initialize the shoot button object
-    shootButton = ButtonObject(context)
+    shootButton = TexturedSquareObject(context, "shootButton.png")
+
+    // Initialize the gun sight object
+    gunSight = TexturedSquareObject(context, "gunSight_wh.png", 9f/16f, 0.05f, 0f, 0f)
+
+    // Enable transparency
+    GLES20.glEnable(GLES20.GL_BLEND)
   }
 
   override fun onDrawFrame(unused: GL10) {
@@ -107,6 +115,9 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     // Draw the shoot button
     shootButton.draw()
+
+    // Draw the gun sight
+    gunSight.draw()
 
     // Draw the enemies
     if (game == null) {
@@ -138,6 +149,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     val ratio: Float = width.toFloat() / height.toFloat()
     shootButton.setRatio(ratio)
+    gunSight.setRatio(ratio)
 
     // this projection matrix is applied to object coordinates
     // in the onDrawFrame() method

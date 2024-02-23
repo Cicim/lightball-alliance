@@ -12,8 +12,9 @@ import java.nio.FloatBuffer
 const val COORDS_PER_VERTEX_2D = 2
 const val COORDS_PER_TEXTURE_2D = 2
 
-class ButtonObject (
+class TexturedSquareObject (
   private val context: Context,
+  private val textureName: String,
   private var aspectRatio: Float = 9f / 16f,
   squareSize: Float = 0.1f,
   centerX: Float = 0.0f,
@@ -144,7 +145,7 @@ class ButtonObject (
     if (textureHandles[0] != 0) {
       val bitmap =
         try {
-          BitmapFactory.decodeStream(context.assets.open("shootButton.png"))
+          BitmapFactory.decodeStream(context.assets.open(textureName))
         } catch (e: IOException) {
           e.printStackTrace()
           return
