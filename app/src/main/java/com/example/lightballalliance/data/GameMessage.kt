@@ -59,7 +59,6 @@ fun parseGameMessage(message: String): GameMessage {
   val json = Json.parseToJsonElement(message)
   val type = json.jsonObject["type"]!!.jsonPrimitive.content
   val data = json.jsonObject["data"].toString()
-//  println("Type: $type, Data: $data")
 
   return when (type) {
     "game_started" -> { Json.decodeFromString<GameMessage.GameStarted>(data) }

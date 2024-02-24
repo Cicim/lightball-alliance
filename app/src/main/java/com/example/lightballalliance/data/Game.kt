@@ -98,9 +98,7 @@ class Game (
   fun shoot() {
     val target = findTarget()
     if (target != null) {
-      val enemy = getEnemy(target)
-      // TODO Tell the server that the enemy was damaged
-      Log.d("Game", "Enemy $target was damaged")
+      sendClientMessage(ClientMessage.EnemyShot(target))
     }
   }
 

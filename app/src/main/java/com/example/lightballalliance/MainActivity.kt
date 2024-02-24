@@ -21,7 +21,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.lightballalliance.data.ClientMessage
 import com.example.lightballalliance.data.GameMessage
+import com.example.lightballalliance.data.sendClientMessage
 import com.example.lightballalliance.ui.theme.lightballallianceTheme
 
 class MainActivity : ComponentActivity(), WebSocketListener {
@@ -56,7 +58,7 @@ class MainActivity : ComponentActivity(), WebSocketListener {
               onNameChange = { WebSocketClient.playerName.value = it },
               isConnected = isConnected.value,
               confirmName = {
-                WebSocketClient.send(WebSocketClient.playerName.value)
+                sendClientMessage(ClientMessage.Name(WebSocketClient.playerName.value))
                 nameConfirmed.value = true
                 navigateToGameActivity()
               }

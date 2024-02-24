@@ -12,9 +12,11 @@ import android.view.MotionEvent
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableStateOf
+import com.example.lightballalliance.data.ClientMessage
 import com.example.lightballalliance.data.Enemy
 import com.example.lightballalliance.data.Game
 import com.example.lightballalliance.data.GameMessage
+import com.example.lightballalliance.data.sendClientMessage
 import java.util.Timer
 import kotlin.concurrent.timer
 import kotlin.math.abs
@@ -63,7 +65,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     setContentView(gLView)
 
     // Send the player_ready message
-    WebSocketClient.send("""{"type": "player_ready", "data": ""}""")
+    sendClientMessage(ClientMessage.Ready)
 
     // Start the timer to update the game state
     timer = timer("updateGameStateTimer",
@@ -251,14 +253,12 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       return
     }
 
-    // Send the orientation angles to the server.
-    val x = "%.3f".format(gameRotation[0]).replace(",", ".")
-    val y = "%.3f".format(gameRotation[1]).replace(",", ".")
-    val z = "%.3f".format(-gameRotation[2]).replace(",", ".")
-
-    val message = """{"type": "player_rotation_updated", "data": {"x": $x, "y": $y, "z": $z}}"""
-
-    WebSocketClient.send(message)
+    // Send the orientation angles to the server
+    sendClientMessage(ClientMessage.RotationUpdated(
+      gameRotation[0].toFloat(),
+      gameRotation[1].toFloat(),
+      -gameRotation[2].toFloat()
+    ))
   }
 
 
