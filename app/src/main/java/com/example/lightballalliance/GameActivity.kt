@@ -144,7 +144,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       val newOrientation = rotationVectorToEulerAngles(sensorReading)
       val difference = abs(newOrientation[0] - currentEuler[0]) +
         abs(newOrientation[1] - currentEuler[1]) +
-        abs(newOrientation[2] - currentEuler[2]);
+        abs(newOrientation[2] - currentEuler[2])
       currentEuler = newOrientation
 
       // Only update everything if the orientation angles have changed
@@ -185,7 +185,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     val finalOrientationAngles = rotationVectorToEulerAngles(finalOrientation)
 
     // Redraw the GLSurfaceView
-    gLView.setCamOrientation(
+    game?.setCameraOrientation(
       finalOrientationAngles[2],
       finalOrientationAngles[0],
       cos(initialGameRotation[1]) * finalOrientationAngles[1]
@@ -288,7 +288,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         if (player != null) {
           Log.d("PlayerPos", ">>>Initial position: ${player.getPosition().contentToString()}")
 
-          gLView.setInitialEye(
+          game?.setCameraEye(
             player.getPosition()[0].toFloat(),
             player.getPosition()[1].toFloat(),
             player.getPosition()[2].toFloat()

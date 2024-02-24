@@ -8,8 +8,6 @@ import android.util.Log
 import com.example.lightballalliance.data.Game
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
-import kotlin.math.cos
-import kotlin.math.sin
 
 class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   private val renderer: MyGLRenderer
@@ -30,17 +28,6 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   fun setGameHandler(game: Game) {
     renderer.setGameHandler(game)
   }
-
-  // Function to set the camera orientation according to the orientation angles
-  // of the device
-  fun setCamOrientation(x: Double, y: Double, z: Double) {
-    renderer.setCamOrientation(x, y, z)
-  }
-
-  // Function to set the initial position of the camera (eye)
-  fun setInitialEye(x: Float, y: Float, z: Float) {
-    renderer.setInitialEye(x, y, z)
-  }
 }
 
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
@@ -55,29 +42,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
   private val translateMatrix = FloatArray(16)
-
-  // Variables to set the camera position
-  private var centerX = 0f
-  private var centerY = 0f
-  private var centerZ = 0f
-  private var eyeX = 0f
-  private var eyeY = 0f
-  private var eyeZ = 6f
-
-  // Function to set the camera orientation according to the orientation angles
-  // of the device, using roll, pitch, and yaw
-  fun setCamOrientation(roll: Double, pitch: Double, yaw: Double) {
-    centerX = eyeX + cos(yaw).toFloat() * cos(pitch).toFloat()
-    centerY = eyeY + sin(pitch).toFloat()
-    centerZ = eyeZ - sin(yaw).toFloat() * cos(pitch).toFloat()
-  }
-
-  // Function to set the initial position of the camera (eye)
-  fun setInitialEye(x: Float, y: Float, z: Float) {
-    eyeX = x
-    eyeY = y
-    eyeZ = z
-  }
 
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
@@ -104,26 +68,33 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   }
 
   override fun onDrawFrame(unused: GL10) {
+    // Only draw if the game handler is set
+    if (game == null) { return }
+    val game = this.game!!
+
     val scratch = FloatArray(16)
 
     // Redraw background color
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
+    val eye = game.getCameraEye()
+    val center = game.getCameraCenter()
+
     // Set the camera position (View matrix)
-    Matrix.setLookAtM(viewMatrix, 0, eyeX, eyeY, eyeZ, centerX, centerY, centerZ, 0f, 1f, 0f)
+    Matrix.setLookAtM(
+      viewMatrix, 0,
+      eye[0], eye[1], eye[2],
+      center[0], center[1], center[2],
+      0f, 1f, 0f)
 
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
     // Draw the enemies
-    if (game == null) {
-      return
-    }
-
     try {
-      game!!.getEnemies().forEach {
+      game.getEnemies().forEach {
         // Get the translation vector for the enemy
-        val (tx, ty, tz) = it.getPosition(game!!.getTime())
+        val (tx, ty, tz) = it.getPosition(game.getTime())
 
         // Create a translation transformation
         Matrix.setIdentityM(translateMatrix, 0)

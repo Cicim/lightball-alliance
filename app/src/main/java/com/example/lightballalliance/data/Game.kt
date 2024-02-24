@@ -1,6 +1,8 @@
 package com.example.lightballalliance.data
 
 import android.util.Log
+import kotlin.math.cos
+import kotlin.math.sin
 
 class Game (
   playersData: List<PlayerData>
@@ -8,6 +10,11 @@ class Game (
   private var players: MutableList<Player> = mutableListOf()
   private var enemies: MutableList<Enemy> = mutableListOf()
   private var time: Int = 0
+
+  // Vector the represents the position of the camera
+  private var eyePosition: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
+  // Versor that represents the orientation of the camera
+  private var centerVersor: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
 
 
   init {
@@ -28,6 +35,33 @@ class Game (
     // Create an enemy that stays at the origin.
     val enemy = Enemy(999, 100, 0xFFFFFF, 0, 0.0, doubleArrayOf(0.0, 0.0, 0.0), doubleArrayOf(0.0, 0.0, 0.0))
     enemies.add(enemy)
+  }
+
+  /**
+   * Methods to manage the camera position and orientation.
+   */
+
+  fun setCameraEye(x: Float, y: Float, z: Float) {
+    eyePosition = floatArrayOf(x, y, z)
+  }
+
+  // Function to set the camera orientation according to the orientation angles
+  // of the device, using roll, pitch, and yaw
+  fun setCameraOrientation(roll: Double, pitch: Double, yaw: Double) {
+    centerVersor[0] = cos(yaw).toFloat() * cos(pitch).toFloat()
+    centerVersor[1] = sin(pitch).toFloat()
+    centerVersor[2] = -sin(yaw).toFloat() * cos(pitch).toFloat()
+  }
+
+  fun getCameraEye(): FloatArray {
+    return eyePosition
+  }
+
+  fun getCameraCenter(): FloatArray {
+    return floatArrayOf(
+      eyePosition[0] + centerVersor[0],
+      eyePosition[1] + centerVersor[1],
+      eyePosition[2] + centerVersor[2])
   }
 
 
