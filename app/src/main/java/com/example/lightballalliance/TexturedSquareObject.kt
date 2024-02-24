@@ -16,16 +16,16 @@ class TexturedSquareObject (
   private val context: Context,
   private val textureName: String,
   private var aspectRatio: Float = 9f / 16f,
-  squareSize: Float = 0.1f,
+  squareSize: Float = 0.2f,
   centerX: Float = 0.0f,
   centerY: Float = -0.9f
 ) {
   // Coordinates of the square object
   private val squareCoords = floatArrayOf(
-    (centerX - squareSize) / aspectRatio, (centerY + squareSize), // top left
-    (centerX - squareSize) / aspectRatio, (centerY - squareSize), // bottom left
-    (centerX + squareSize) / aspectRatio, (centerY - squareSize), // bottom right
-    (centerX + squareSize) / aspectRatio, (centerY + squareSize) // top right
+    (centerX - squareSize / 2) / aspectRatio, (centerY + squareSize / 2), // top left
+    (centerX - squareSize / 2) / aspectRatio, (centerY - squareSize / 2), // bottom left
+    (centerX + squareSize / 2) / aspectRatio, (centerY - squareSize / 2), // bottom right
+    (centerX + squareSize / 2) / aspectRatio, (centerY + squareSize / 2) // top right
   )
 
   // Texture coordinates

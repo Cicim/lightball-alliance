@@ -64,7 +64,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     shootButton = TexturedSquareObject(context, "shootButton.png")
 
     // Initialize the gun sight object
-    gunSight = TexturedSquareObject(context, "gunSight_wh.png", 9f/16f, 0.05f, 0f, 0f)
+    gunSight = TexturedSquareObject(context, "gunSight_wh.png", 9f/16f, 0.1f, 0f, 0f)
   }
 
   override fun onDrawFrame(unused: GL10) {

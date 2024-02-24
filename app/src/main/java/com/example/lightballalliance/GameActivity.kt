@@ -78,18 +78,33 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   }
 
   override fun onTouchEvent(e: MotionEvent): Boolean {
-    // Copy the current orientation angles to the calibration array
-    calibrationEuler = currentEuler.copyOf()
+    when (e.action) {
+      MotionEvent.ACTION_DOWN -> {
+        val x = e.x
+        val y = e.y
 
-    // Store the conjugate of the quaternion to calibrate the sensors
-    calibrationQuat[0] = -currentQuat[0]
-    calibrationQuat[1] = -currentQuat[1]
-    calibrationQuat[2] = -currentQuat[2]
-    calibrationQuat[3] = currentQuat[3]
+        // Check if the player has touched the shoot button
+        if (x <= 0.6 * gLView.width && x >= 0.4 * gLView.width && y >= 0.8 * gLView.height) {
+          Log.d("GameActivity", ">>>Shoot button pressed")
+          game?.shoot()
+        }
 
-    // Recompute the orientation angles
-    recomputePlayerAngle()
+        // Else calibrate the sensors
+        else {
+          // Copy the current orientation angles to the calibration array
+          calibrationEuler = currentEuler.copyOf()
 
+          // Store the conjugate of the quaternion to calibrate the sensors
+          calibrationQuat[0] = -currentQuat[0]
+          calibrationQuat[1] = -currentQuat[1]
+          calibrationQuat[2] = -currentQuat[2]
+          calibrationQuat[3] = currentQuat[3]
+
+          // Recompute the orientation angles
+          recomputePlayerAngle()
+        }
+      }
+    }
     return true
   }
 
