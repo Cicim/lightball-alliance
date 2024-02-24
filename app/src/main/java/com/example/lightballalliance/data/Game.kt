@@ -2,18 +2,20 @@ package com.example.lightballalliance.data
 
 import android.util.Log
 import kotlin.math.cos
+import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 class Game (
   playersData: List<PlayerData>
 ) {
   private var players: MutableList<Player> = mutableListOf()
-  private var enemies: MutableList<Enemy> = mutableListOf()
+  private var enemies: HashMap<Int, Enemy> = hashMapOf()
   private var time: Int = 0
 
   // Vector the represents the position of the camera
   private var eyePosition: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
-  // Versor that represents the orientation of the camera
+  // Unit vector that represents the orientation of the camera
   private var centerVersor: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
 
 
@@ -24,8 +26,8 @@ class Game (
 
     // Initialize the variables
     for (data in playersData) {
-      val position = doubleArrayOf(data.position.x, data.position.y, data.position.z)
-      val rotation = doubleArrayOf(data.rotation.x, data.rotation.y, data.rotation.z)
+      val position = doubleArrayOf(data.position.x.toDouble(), data.position.y.toDouble(), data.position.z.toDouble())
+      val rotation = doubleArrayOf(data.rotation.x.toDouble(), data.rotation.y.toDouble(), data.rotation.z.toDouble())
       val initialRotation = rotation.clone()
 
       val player = Player(data.username, position, rotation, initialRotation)
@@ -33,8 +35,9 @@ class Game (
     }
 
     // Create an enemy that stays at the origin.
-    val enemy = Enemy(999, 100, 0xFFFFFF, 0, 0.0, doubleArrayOf(0.0, 0.0, 0.0), doubleArrayOf(0.0, 0.0, 0.0))
-    enemies.add(enemy)
+    val enemy = Enemy(999, 100, 0xFFFFFF, 0, 0f,
+      floatArrayOf(0f, 0f, 0f), floatArrayOf(0f, 0f, 0f))
+    addEnemy(enemy)
   }
 
   /**
@@ -64,6 +67,42 @@ class Game (
       eyePosition[2] + centerVersor[2])
   }
 
+  /**
+   * Functions for shooting.
+   */
+
+  fun findTarget(): Int? {
+    val cameraPosition = getCameraEye()
+
+    for (enemy in enemies.values) {
+      val (ex, ey, ez) = enemy.getPosition(time)
+
+      // Step along the camera orientation vector starting from the camera eye
+      for (i in 0 until 80) {
+        val step = 0.15f * i
+        val rx = cameraPosition[0] + step * centerVersor[0]
+        val ry = cameraPosition[1] + step * centerVersor[1]
+        val rz = cameraPosition[2] + step * centerVersor[2]
+
+        // Until you hit a target
+        val distance = sqrt((rx - ex).pow(2) + (ry - ey).pow(2) + (rz - ez).pow(2))
+        if (distance < 0.2f) {
+          return enemy.getId()
+        }
+      }
+    }
+
+    return null
+  }
+
+  fun shoot() {
+    val target = findTarget()
+    if (target != null) {
+      val enemy = getEnemy(target)
+      // TODO Tell the server that the enemy was damaged
+      Log.d("Game", "Enemy $target was damaged")
+    }
+  }
 
   /**
    * Methods to manage the list of enemies.
@@ -71,14 +110,12 @@ class Game (
 
   // Add a new enemy to the scene
   fun addEnemy(enemy: Enemy) {
-    enemies.add(enemy)
+    enemies[enemy.getId()] = enemy
   }
 
   // Remove an enemy by id from the scene
   fun removeEnemy(enemy: Int) {
-    // Find the enemy with the given id
-    val index = enemies.indexOfFirst { it.getId() == enemy }
-    enemies.removeAt(index)
+    enemies.remove(enemy)
   }
 
 
@@ -127,12 +164,12 @@ class Game (
 
   // Return the list of enemies.
   fun getEnemies(): List<Enemy> {
-    return enemies
+    return enemies.values.toList()
   }
 
   // Return the enemy with the given id.
-  fun getEnemy(id: Int): Enemy {
-    return enemies.find { it.getId() == id }!!
+  fun getEnemy(id: Int): Enemy? {
+    return enemies[id]
   }
 
   // Return the current time.

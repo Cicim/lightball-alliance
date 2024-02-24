@@ -309,8 +309,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           message.color,
           message.startTime,
           message.speed,
-          doubleArrayOf(message.source.x, message.source.y, message.source.z),
-          doubleArrayOf(message.target.x, message.target.y, message.target.z)
+          floatArrayOf(message.source.x, message.source.y, message.source.z),
+          floatArrayOf(message.target.x, message.target.y, message.target.z)
         )
         game?.addEnemy(enemy)
       }

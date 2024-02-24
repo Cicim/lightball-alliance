@@ -25,7 +25,7 @@ sealed class GameMessage {
     val target: Vec3,
     @SerialName("start_time")
     val startTime: Int,
-    val speed: Double
+    val speed: Float
   ) : GameMessage()
   // enemy_damaged
   @Serializable
@@ -84,7 +84,7 @@ fun parseGameMessage(message: String): GameMessage {
 }
 
 @Serializable
-data class Vec3(val x: Double, val y: Double, val z: Double)
+data class Vec3(val x: Float, val y: Float, val z: Float)
 
 @Serializable
 data class PlayerData(
