@@ -12,6 +12,7 @@ class Game (
   private var players: MutableList<Player> = mutableListOf()
   private var enemies: HashMap<Int, Enemy> = hashMapOf()
   private var time: Int = 0
+  var lastShootResult: Boolean? = null
 
   // Vector the represents the position of the camera
   private var eyePosition: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
@@ -71,7 +72,7 @@ class Game (
    * Functions for shooting.
    */
 
-  fun findTarget(): Int? {
+  private fun findTarget(): Int? {
     val cameraPosition = getCameraEye()
 
     for (enemy in enemies.values) {
@@ -97,8 +98,11 @@ class Game (
 
   fun shoot() {
     val target = findTarget()
-    if (target != null) {
+    lastShootResult = if (target != null) {
       sendClientMessage(ClientMessage.EnemyShot(target))
+      true
+    } else {
+      false
     }
   }
 

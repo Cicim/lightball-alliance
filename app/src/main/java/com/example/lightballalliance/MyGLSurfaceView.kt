@@ -43,6 +43,10 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val viewMatrix = FloatArray(16)
   private val translateMatrix = FloatArray(16)
 
+  // Initialize the counter for the color change animation
+  private var animationTimer: Int = 0
+  private var savedShootResult: Boolean? = null
+
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
     this.game = game
@@ -98,7 +102,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
         // Create a translation transformation
         Matrix.setIdentityM(translateMatrix, 0)
-        Matrix.translateM(translateMatrix,0, tx.toFloat(), ty.toFloat(), tz.toFloat())
+        Matrix.translateM(translateMatrix,0, tx, ty, tz)
 
         // Combine the translation matrix with the projection and camera view
         Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
@@ -113,11 +117,34 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Clear the depth buffer
     GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
 
+    // Check if the shoot button was pressed
+    if (savedShootResult == game.lastShootResult) {
+      if (animationTimer > 0) {
+        animationTimer -= 1
+      } else {
+        game.lastShootResult = null
+        savedShootResult = null
+      }
+    } else {
+      savedShootResult = game.lastShootResult
+      animationTimer = 100
+    }
+
     // Draw the shoot button
-    shootButton.draw()
+    shootButton.draw(calculateColor())
 
     // Draw the gun sight
     gunSight.draw()
+  }
+
+  private fun calculateColor(): FloatArray {
+    val t = 0.5f - animationTimer.toFloat() / 200f
+
+    return when (savedShootResult) {
+      true -> floatArrayOf(0.5f + t, 1.0f, 0.5f + t, 1.0f)
+      false -> floatArrayOf(1.0f, 0.5f + t, 0.5f + t, 1.0f)
+      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    }
   }
 
   override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {

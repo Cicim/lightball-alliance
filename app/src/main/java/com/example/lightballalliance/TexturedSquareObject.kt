@@ -75,8 +75,9 @@ class TexturedSquareObject (
     "precision mediump float;" +
     "uniform sampler2D uTexture;" +
     "varying vec2 vTexCoord;" +
+    "uniform vec4 vColor;" +
     "void main() {" +
-    "  gl_FragColor = texture2D(uTexture, vTexCoord);" +
+    "  gl_FragColor = vColor * texture2D(uTexture, vTexCoord);" +
     "}"
 
   private var program: Int = 0
@@ -98,7 +99,7 @@ class TexturedSquareObject (
     loadTexture()
   }
 
-  fun draw() {
+  fun draw(color: FloatArray = floatArrayOf(1f, 1f, 1f, 1f)) {
     GLES20.glUseProgram(program)
 
     positionHandle = GLES20.glGetAttribLocation(program, "vPosition").also {
@@ -128,6 +129,11 @@ class TexturedSquareObject (
     GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
     GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId)
     GLES20.glUniform1i(textureHandle, 0)
+
+    // Set color for drawing the object
+    GLES20.glGetUniformLocation(program, "vColor").also { colorHandle ->
+      GLES20.glUniform4fv(colorHandle, 1, color, 0)
+    }
 
     GLES20.glDrawElements(
       GLES20.GL_TRIANGLES, drawOrder.size,

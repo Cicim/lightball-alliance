@@ -113,7 +113,6 @@ class EnemyObject {
 
       // get handle to fragment shader's vColor member
       mColorHandle = GLES20.glGetUniformLocation(mProgram, "vColor").also { colorHandle ->
-
         // Set color for drawing the object
         GLES20.glUniform4fv(colorHandle, 1, color, 0)
       }
