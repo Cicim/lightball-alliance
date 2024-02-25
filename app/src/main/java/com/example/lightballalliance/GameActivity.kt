@@ -199,7 +199,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       initialRotationQuat
     )
     // Redraw the GLSurfaceView
-    game.setCameraOrientation(finalOrientation)
+    game.setNewOrientationQuaternion(finalOrientation)
   }
 
 

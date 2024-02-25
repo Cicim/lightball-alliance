@@ -23,7 +23,7 @@ class Game (
   // Whether the camera yaw should be inverted (front of back)
   var yawMultiplier = 1.0f
   // Last quaternion measurement, to be replaced when the interpolation ends
-  var lastMeasuredQuarternion: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
+  private var currentOrientationQuarternion: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
 
   init {
     Log.d("Game", "Game created")
@@ -65,6 +65,14 @@ class Game (
     centerVersor[0] = cos(yaw).toFloat() * cos(pitch).toFloat()
     centerVersor[1] = sin(pitch).toFloat()
     centerVersor[2] = -sin(yaw).toFloat() * cos(pitch).toFloat()
+  }
+
+  fun setNewOrientationQuaternion(quaternion: FloatArray) {
+    currentOrientationQuarternion = quaternion
+  }
+
+  fun getNewOrientationQuaternion(): FloatArray {
+    return currentOrientationQuarternion
   }
 
   fun getCameraEye(): FloatArray {

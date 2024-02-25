@@ -9,6 +9,8 @@ import com.example.lightballalliance.data.Game
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
+const val CAMERA_INTERPOLATION_TIME = 10
+
 class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   private val renderer: MyGLRenderer
 
@@ -36,6 +38,13 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var gunSight: TexturedSquareObject
 
   private var game: Game? = null
+
+  // First element of the queue of two camera orientation quaternions
+  private var sourceQuaternion: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
+  // Second element of the queue of two camera orientation quaternions
+  private var targetQuaternion: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
+  // Orientation interpolation timer
+  private var orientationTimer: Int = 0
 
   // vPMatrix is an abbreviation for "Model View Projection Matrix"
   private val vPMatrix = FloatArray(16)
@@ -73,8 +82,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
   override fun onDrawFrame(unused: GL10) {
     // Only draw if the game handler is set
-    if (game == null) { return }
-    val game = this.game!!
+    val game = this.game ?: return
+    cameraTurningLogic()
 
     val scratch = FloatArray(16)
 
@@ -135,6 +144,35 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     // Draw the gun sight
     gunSight.draw()
+  }
+
+
+  private fun cameraTurningLogic() {
+    val game = this.game ?: return
+
+    if (orientationTimer == 0) {
+      // End the previous movement on the last angle
+      game.setCameraOrientation(targetQuaternion)
+
+      // Update the orientation quaternions
+      sourceQuaternion = targetQuaternion
+      targetQuaternion = game.getNewOrientationQuaternion()
+      orientationTimer = CAMERA_INTERPOLATION_TIME
+    } else {
+      orientationTimer -= 1
+      val t = 1.0f - orientationTimer.toFloat() / CAMERA_INTERPOLATION_TIME.toFloat()
+      val orientation = slerpQuaternions(sourceQuaternion, targetQuaternion, t)
+
+      game.setCameraOrientation(orientation)
+
+      // If a new orientation arrived during this time, update the target quaternion
+      val newTargetQuaternion = game.getNewOrientationQuaternion()
+      if (!newTargetQuaternion.contentEquals(targetQuaternion)) {
+        sourceQuaternion = orientation
+        targetQuaternion = newTargetQuaternion
+        orientationTimer = CAMERA_INTERPOLATION_TIME
+      }
+    }
   }
 
   private fun calculateColor(): FloatArray {
