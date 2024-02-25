@@ -9,20 +9,13 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
-const val COORDS_PER_VERTEX_2D = 2
-const val COORDS_PER_TEXTURE_2D = 2
-
-// Number of coordinates per vertex
-const val VERTEX_STRIDE_2D = COORDS_PER_VERTEX_2D * 4 // 4 bytes per vertex
-const val TEXTURE_STRIDE_2D = COORDS_PER_TEXTURE_2D * 4 // 4 bytes per vertex
-
-class TexturedSquareObject (
+class HealthBarObject (
   private val context: Context,
   private var aspectRatio: Float,
   private val textureName: String,
-  squareSize: Float = 0.2f,
-  centerX: Float = 0.0f,
-  centerY: Float = -0.9f
+  squareSize: Float = 0.03f,
+  centerX: Float,
+  centerY: Float
 ) {
   // Coordinates of the square object
   private val squareCoords = floatArrayOf(
@@ -71,13 +64,19 @@ class TexturedSquareObject (
     "  vTexCoord = aTexCoord;" +
     "}"
 
+  // Render the health bar until the health value if the pixels are different than white
   private val fragmentShaderCode =
     "precision mediump float;" +
     "uniform sampler2D uTexture;" +
     "varying vec2 vTexCoord;" +
-    "uniform vec4 vColor;" +
+    "uniform float vHealth;" +
     "void main() {" +
-    "  gl_FragColor = vColor * texture2D(uTexture, vTexCoord);" +
+    "  vec4 color = texture2D(uTexture, vTexCoord);" +
+    "  if (vTexCoord.x < vHealth || color == vec4(1.0, 1.0, 1.0, 1.0)) {" +
+    "    gl_FragColor = color;" +
+    "  } else {" +
+    "    gl_FragColor = vec4(1.0, 1.0, 1.0, 0.0);" +
+    "  }" +
     "}"
 
   private var program: Int = 0
@@ -99,7 +98,7 @@ class TexturedSquareObject (
     loadTexture()
   }
 
-  fun draw(color: FloatArray = floatArrayOf(1f, 1f, 1f, 1f)) {
+  fun draw(health: Int = 100) {
     GLES20.glUseProgram(program)
 
     positionHandle = GLES20.glGetAttribLocation(program, "vPosition").also {
@@ -131,8 +130,8 @@ class TexturedSquareObject (
     GLES20.glUniform1i(textureHandle, 0)
 
     // Set color for drawing the object
-    GLES20.glGetUniformLocation(program, "vColor").also { colorHandle ->
-      GLES20.glUniform4fv(colorHandle, 1, color, 0)
+    GLES20.glGetUniformLocation(program, "vHealth").also { healthHandle ->
+      GLES20.glUniform1f(healthHandle, health / 100f)
     }
 
     GLES20.glDrawElements(

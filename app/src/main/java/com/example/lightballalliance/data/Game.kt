@@ -1,6 +1,7 @@
 package com.example.lightballalliance.data
 
 import android.util.Log
+import com.example.lightballalliance.WebSocketClient
 import com.example.lightballalliance.quaternionToEulerAngles
 import kotlin.math.cos
 import kotlin.math.pow
@@ -163,6 +164,18 @@ class Game (
   // Remove the player from the list of players.
   fun removePlayer(player: Player) {
     players.remove(player)
+  }
+
+  fun getYourPlayer(): Player {
+    WebSocketClient.playerName.value.let { name ->
+      return players.find { it.getUsername() == name }!!
+    }
+  }
+
+  fun getAllyPlayer(): Player {
+    WebSocketClient.playerName.value.let { name ->
+      return players.find { it.getUsername() != name }!!
+    }
   }
 
   /**

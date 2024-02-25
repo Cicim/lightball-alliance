@@ -37,6 +37,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
   private lateinit var shootButton: TexturedSquareObject
   private lateinit var gunSight: TexturedSquareObject
+  private lateinit var playerHealthBar: HealthBarObject
+  private lateinit var allyHealthBar: HealthBarObject
 
   private var game: Game? = null
 
@@ -67,14 +69,22 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     GLES20.glEnable(GLES20.GL_BLEND)
     GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
+    // Retrieve the aspect ratio of the device
+    val displayMetrics = context.resources.displayMetrics
+    val aspectRatio: Float = displayMetrics.widthPixels.toFloat() / displayMetrics.heightPixels.toFloat()
+
     // Initialize the enemy object
     enemyObject = EnemyObject()
 
     // Initialize the shoot button object
-    shootButton = TexturedSquareObject(context, "shootButton.png")
+    shootButton = TexturedSquareObject(context, aspectRatio, "shootButton.png")
 
     // Initialize the gun sight object
-    gunSight = TexturedSquareObject(context, "gunSight_wh.png", 9f/16f, 0.1f, 0f, 0f)
+    gunSight = TexturedSquareObject(context, aspectRatio,"gunSight_wh.png", 0.1f, 0f, 0f)
+
+    // Initialize the health bar objects (original aspect ratio of the image is 9:1)
+    playerHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, -0.035f, -0.95f)
+    allyHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, 0.035f, -0.95f)
   }
 
   override fun onDrawFrame(unused: GL10) {
@@ -127,6 +137,10 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     // Draw the gun sight
     gunSight.draw()
+
+    // Draw the health bars
+    playerHealthBar.draw(game.getYourPlayer().getHealth())
+    allyHealthBar.draw(game.getAllyPlayer().getHealth())
   }
 
 
@@ -186,6 +200,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     val ratio: Float = width.toFloat() / height.toFloat()
     shootButton.setRatio(ratio)
     gunSight.setRatio(ratio)
+    playerHealthBar.setRatio(ratio)
+    allyHealthBar.setRatio(ratio)
 
     // this projection matrix is applied to object coordinates
     // in the onDrawFrame() method
