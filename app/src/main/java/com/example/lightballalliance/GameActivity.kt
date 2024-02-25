@@ -20,11 +20,7 @@ import com.example.lightballalliance.data.sendClientMessage
 import java.util.Timer
 import kotlin.concurrent.timer
 import kotlin.math.abs
-import kotlin.math.asin
-import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.sign
-import kotlin.math.sin
 
 class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener {
   private lateinit var sensorManager: SensorManager
@@ -158,7 +154,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       currentQuat[3] = sensorReading[3]
 
       // The quaternion is converted to angles to be sent to the server
-      val newOrientation = rotationVectorToEulerAngles(sensorReading)
+      val newOrientation = quaternionToEulerAngles(sensorReading)
       val difference = abs(newOrientation[0] - currentEuler[0]) +
         abs(newOrientation[1] - currentEuler[1]) +
         abs(newOrientation[2] - currentEuler[2])
@@ -180,11 +176,15 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     )
 
     // Update the game rotation angles
-    gameRotation = rotationVectorToEulerAngles(calibratedQuat)
+    gameRotation = quaternionToEulerAngles(calibratedQuat)
 
     // Send the orientation angles to the server (yes, before recalculating the final orientation)
     // The server wants the angles only as a rotation compared to the initial orientation.
     sendData()
+
+    // The rest is useless if the game is not initialized
+    if (game == null) return
+    val game = game!!
 
     // Convert the initial orientation angles to a quaternion
     val initialRotationQuat = eulerAnglesToQuaternion(
@@ -198,70 +198,12 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       calibratedQuat,
       initialRotationQuat
     )
-
-    val finalOrientationAngles = rotationVectorToEulerAngles(finalOrientation)
-
     // Redraw the GLSurfaceView
-    game?.setCameraOrientation(
-      finalOrientationAngles[2],
-      finalOrientationAngles[0],
-      cos(initialGameRotation[1]) * finalOrientationAngles[1]
-    )
+    game.setCameraOrientation(finalOrientation)
   }
 
-  // Function to convert a quaternion to Euler angles (roll, pitch, and yaw)
-  private fun rotationVectorToEulerAngles(v: FloatArray): DoubleArray {
-    val qx = v[0].toDouble()
-    val qy = v[1].toDouble()
-    val qz = v[2].toDouble()
-    val qw = v[3].toDouble()
 
-    val sinr_cosp = 2 * (qw * qx + qy * qz)
-    val cosr_cosp = 1 - 2 * (qx * qx + qy * qy)
-    val roll = atan2(sinr_cosp, cosr_cosp)
 
-    // pitch / y
-    val sinp = 2 * (qw * qy - qz * qx)
-    val pitch = if (abs(sinp) >= 1) {
-      Math.PI / 2 * sign(sinp)
-    } else {
-      asin(sinp)
-    }
-
-    // yaw / z
-    val siny_cosp = 2 * (qw * qz + qx * qy)
-    val cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
-    val yaw = atan2(siny_cosp, cosy_cosp)
-
-    return doubleArrayOf(roll, pitch, yaw)
-  }
-
-  // Function to convert Euler angles to a quaternion
-  private fun eulerAnglesToQuaternion(roll: Double, pitch: Double, yaw: Double): FloatArray {
-    val cy = cos(yaw * 0.5).toFloat()
-    val sy = sin(yaw * 0.5).toFloat()
-    val cp = cos(pitch * 0.5).toFloat()
-    val sp = sin(pitch * 0.5).toFloat()
-    val cr = cos(roll * 0.5).toFloat()
-    val sr = sin(roll * 0.5).toFloat()
-
-    val w = cr * cp * cy + sr * sp * sy
-    val x = sr * cp * cy - cr * sp * sy
-    val y = cr * sp * cy + sr * cp * sy
-    val z = cr * cp * sy - sr * sp * cy
-
-    return floatArrayOf(x, y, z, w)
-  }
-
-  // Function to multiply two quaternions
-  private fun multiplyQuaternions(q1: FloatArray, q2: FloatArray): FloatArray {
-    val x = q1[3] * q2[0] + q1[0] * q2[3] + q1[1] * q2[2] - q1[2] * q2[1]
-    val y = q1[3] * q2[1] - q1[0] * q2[2] + q1[1] * q2[3] + q1[2] * q2[0]
-    val z = q1[3] * q2[2] + q1[0] * q2[1] - q1[1] * q2[0] + q1[2] * q2[3]
-    val w = q1[3] * q2[3] - q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2]
-
-    return floatArrayOf(x, y, z, w)
-  }
 
   private fun sendData() {
     if (!isConnected.value || game == null) {
@@ -311,6 +253,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
           // Get the initial orientation of the player
           initialGameRotation = player.getInitialRotation().clone()
+          game?.yawMultiplier = cos(initialGameRotation[1]).toFloat()
         }
       }
       is GameMessage.TimeSync -> {

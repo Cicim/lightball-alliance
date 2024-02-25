@@ -1,6 +1,7 @@
 package com.example.lightballalliance.data
 
 import android.util.Log
+import com.example.lightballalliance.quaternionToEulerAngles
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -19,6 +20,10 @@ class Game (
   // Unit vector that represents the orientation of the camera
   private var centerVersor: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
 
+  // Whether the camera yaw should be inverted (front of back)
+  var yawMultiplier = 1.0f
+  // Last quaternion measurement, to be replaced when the interpolation ends
+  var lastMeasuredQuarternion: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
 
   init {
     Log.d("Game", "Game created")
@@ -49,9 +54,14 @@ class Game (
     eyePosition = floatArrayOf(x, y, z)
   }
 
-  // Function to set the camera orientation according to the orientation angles
-  // of the device, using roll, pitch, and yaw
-  fun setCameraOrientation(roll: Double, pitch: Double, yaw: Double) {
+  // Function to set the camera orientation according according to the
+  // orientation quaternion passed in as input.
+  fun setCameraOrientation(quaternion: FloatArray) {
+    val finalOrientationAngles = quaternionToEulerAngles(quaternion)
+    // val roll = finalOrientationAngles[2]
+    val pitch = finalOrientationAngles[0]
+    val yaw = yawMultiplier * finalOrientationAngles[1]
+
     centerVersor[0] = cos(yaw).toFloat() * cos(pitch).toFloat()
     centerVersor[1] = sin(pitch).toFloat()
     centerVersor[2] = -sin(yaw).toFloat() * cos(pitch).toFloat()
