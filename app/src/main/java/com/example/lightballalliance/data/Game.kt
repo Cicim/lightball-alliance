@@ -13,7 +13,11 @@ class Game (
   private var players: MutableList<Player> = mutableListOf()
   private var enemies: HashMap<Int, Enemy> = hashMapOf()
   private var time: Int = 0
+
+  // Whether the last shoot was successful
   var lastShootResult: Boolean? = null
+  // The time in frames before you can shoot again.
+  var shootTimer: Int = 0
 
   // Vector the represents the position of the camera
   private var eyePosition: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
@@ -115,6 +119,11 @@ class Game (
   }
 
   fun shoot() {
+    // You cannot shoot if the timer is not 0
+    if (shootTimer > 0) {
+      return
+    }
+
     val target = findTarget()
     lastShootResult = if (target != null) {
       sendClientMessage(ClientMessage.EnemyShot(target))
@@ -122,6 +131,9 @@ class Game (
     } else {
       false
     }
+
+    // One shot every minute
+    shootTimer = 60
   }
 
   /**

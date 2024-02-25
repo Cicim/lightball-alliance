@@ -8,6 +8,7 @@ import android.util.Log
 import com.example.lightballalliance.data.Game
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.math.sqrt
 
 const val CAMERA_INTERPOLATION_TIME = 10
 
@@ -51,10 +52,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
   private val translateMatrix = FloatArray(16)
-
-  // Initialize the counter for the color change animation
-  private var animationTimer: Int = 0
-  private var savedShootResult: Boolean? = null
 
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
@@ -126,21 +123,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Clear the depth buffer
     GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
 
-    // Check if the shoot button was pressed
-    if (savedShootResult == game.lastShootResult) {
-      if (animationTimer > 0) {
-        animationTimer -= 1
-      } else {
-        game.lastShootResult = null
-        savedShootResult = null
-      }
-    } else {
-      savedShootResult = game.lastShootResult
-      animationTimer = 100
-    }
-
-    // Draw the shoot button
-    shootButton.draw(calculateColor())
+    drawShootButton()
 
     // Draw the gun sight
     gunSight.draw()
@@ -175,14 +158,26 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     }
   }
 
-  private fun calculateColor(): FloatArray {
-    val t = 0.5f - animationTimer.toFloat() / 200f
+  private fun drawShootButton() {
+    val game = this.game ?: return
 
-    return when (savedShootResult) {
-      true -> floatArrayOf(0.5f + t, 1.0f, 0.5f + t, 1.0f)
-      false -> floatArrayOf(1.0f, 0.5f + t, 0.5f + t, 1.0f)
-      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    // Update the shooting timeout
+    if (game.shootTimer > 0) {
+      game.shootTimer -= 1
+    } else {
+      game.lastShootResult = null;
     }
+
+    // Compute the animation of the shoot button
+    var t = game.shootTimer.toFloat() / 120f
+    t = sqrt(t / 2)
+
+    // Draw the shoot button
+    shootButton.draw(when (game.lastShootResult) {
+      true -> floatArrayOf(1.0f - t, 1.0f, 1.0f - t, 1.0f)
+      false -> floatArrayOf(1.0f, 1.0f - t, 1.0f - t, 1.0f)
+      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    })
   }
 
   override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {
