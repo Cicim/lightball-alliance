@@ -61,8 +61,7 @@ class GamesServer:
                 if msg_type == 'player_ready':
                     await game.on_player_ready(username)
                 elif msg_type == 'player_rotation_updated':
-                    rotation = Vec3(
-                        msg_data['x'], msg_data['y'], msg_data['z'])
+                    rotation = Vec3(msg_data['x'], msg_data['y'], msg_data['z'])
                     await game.on_player_rotated(username, rotation)
                 elif msg_type == 'enemy_shot':
                     id = msg_data['id']

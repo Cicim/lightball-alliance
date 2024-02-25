@@ -337,9 +337,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
         timer.cancel()
 
-        // Go back to the main activity stopping the current activity
-//        intent = Intent(this, MainActivity::class.java)
-//        startActivity(intent)
+        // Finish this activity and redirect to the main activity
+        WebSocketClient.disconnect()
+        finish()
       }
 
       else -> { }
