@@ -278,6 +278,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
       is GameMessage.PlayerDamaged -> {
         game?.getPlayer(message.username)?.updateHealth(message.health)
       }
+      is GameMessage.PlayerScoreUpdated -> {
+        game?.getPlayer(message.username)?.updateScore(message.score)
+      }
       is GameMessage.GameOver -> {
         Log.d("GameActivity", ">>>Game over")
 

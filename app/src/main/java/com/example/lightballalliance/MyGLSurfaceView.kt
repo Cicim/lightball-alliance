@@ -34,11 +34,14 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 }
 
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
+  // Rendered objects
   private lateinit var enemyObject: EnemyObject
   private lateinit var shootButton: TexturedSquareObject
   private lateinit var gunSight: TexturedSquareObject
   private lateinit var playerHealthBar: HealthBarObject
   private lateinit var allyHealthBar: HealthBarObject
+  private lateinit var playerText: TextRenderer
+  private lateinit var allyText: TextRenderer
 
   private var game: Game? = null
 
@@ -54,6 +57,10 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
   private val translateMatrix = FloatArray(16)
+
+  // Last scores for the players
+  private var lastYourScore = 0
+  private var lastAllyScore = 0
 
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
@@ -85,6 +92,10 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Initialize the health bar objects (original aspect ratio of the image is 9:1)
     playerHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, -0.035f, -0.95f)
     allyHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, 0.035f, -0.95f)
+
+    // Initialize the text strings
+    playerText = TextRenderer(aspectRatio, "You: 0", -0.315f, -0.9f)
+    allyText = TextRenderer(aspectRatio, "Ally: 0", 0.315f, -0.9f)
   }
 
   override fun onDrawFrame(unused: GL10) {
@@ -141,8 +152,27 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Draw the health bars
     playerHealthBar.draw(game.getYourPlayer().getHealth())
     allyHealthBar.draw(game.getAllyPlayer().getHealth())
+
+    // Draw the text strings
+    drawScores()
   }
 
+  private fun drawScores() {
+    val game = this.game ?: return
+
+    if (lastYourScore != game.getYourPlayer().getScore()) {
+      playerText.setText("You: ${game.getYourPlayer().getScore()}")
+      lastYourScore = game.getYourPlayer().getScore()
+    }
+
+    if (lastAllyScore != game.getAllyPlayer().getScore()) {
+      allyText.setText("Ally: ${game.getAllyPlayer().getScore()}")
+      lastAllyScore = game.getAllyPlayer().getScore()
+    }
+
+    playerText.draw(floatArrayOf(0.75f, 0.75f, 1f, 1f))
+    allyText.draw(floatArrayOf(0.75f, 1f, 0.75f, 1f))
+  }
 
   private fun cameraTurningLogic() {
     val game = this.game ?: return
@@ -179,7 +209,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     if (game.shootTimer > 0) {
       game.shootTimer -= 1
     } else {
-      game.lastShootResult = null;
+      game.lastShootResult = null
     }
 
     // Compute the animation of the shoot button
@@ -202,6 +232,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     gunSight.setRatio(ratio)
     playerHealthBar.setRatio(ratio)
     allyHealthBar.setRatio(ratio)
+    playerText.setRatio(ratio)
+    allyText.setRatio(ratio)
 
     // this projection matrix is applied to object coordinates
     // in the onDrawFrame() method
