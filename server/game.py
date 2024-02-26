@@ -106,12 +106,16 @@ class Logger:
     identifier: int
     time: int
 
-    def __init__(self, identifier: int):
+    def __init__(self, identifier: int = 0):
         self.identifier = identifier
         self.time = 0
 
     def print_header(self):
-        print(f"[Game {self.identifier} - {self.time/1000:>7.2f}s]", end=" ")
+        if self.identifier > 0:
+            print(
+                f"[Game {self.identifier} - {self.time/1000:>7.2f}s]", end=" ")
+        else:
+            print(f"[Server Message]", end=" ")
 
     def log(self, message: str):
         self.print_header()
@@ -149,7 +153,7 @@ class Logger:
         if len(lines) > 1:
             print()
             for line in lines:
-                print(f"       {line}")
+                print(f"                       {line}")
         else:
             print(message)
 
@@ -178,7 +182,7 @@ class GameBroadcasts:
             await asyncio.gather(*[client.send_json({'type': msg_type, 'data': msg_data}) for client in self.clients])
         except Exception as e:
             self.logger.log_error(
-                f"Failed to broadcast to all clients: {e.__cause__}")
+                f"Failed to broadcast to all clients")
 
     # Broadcasts
     # Broadcast to all the players that the game has started with the list of players.

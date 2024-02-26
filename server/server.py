@@ -1,7 +1,9 @@
 import asyncio
 from aiohttp import web, WSMessage, WSMsgType
 
-from game import Game, GameBroadcasts, Vec3
+from game import Game, Vec3, Logger
+
+L = Logger()
 
 
 class GamesServer:
@@ -13,7 +15,9 @@ class GamesServer:
     def __init__(self, port: int):
         self.app = web.Application()
         self.app.router.add_get('/', self.websocket_handler)
-        web.run_app(self.app, port=port)
+        L.log("Server starting on port 8080")
+        L.log("Press Ctrl+C to stop the server...")
+        web.run_app(self.app, port=port, print=None)
 
     open_games: dict[str, Game] = {}
 
@@ -41,7 +45,7 @@ class GamesServer:
         # Send the user a message that they are ready to play
         await self.send_message(username, 'ready', f'You are playing with the name \'{username}\'!')
 
-        print(f"User {username} has connected")
+        L.log(f"User {username} has connected")
 
         self.match_making_queue.append(username)
         self.waiting_for_match.add(username)
@@ -68,12 +72,13 @@ class GamesServer:
                     id = msg_data['id']
                     await game.on_enemy_shot(username, id)
             except Exception as e:
-                print(e)
-                print(f"Received an invalid message from {username}: {msg}")
+                L.log_error(
+                    f"Received an invalid message from {username}: {msg}")
+                L.log_error(e)
                 continue
 
         # Once the message loop is over, the player has disconnected
-        print(f"User {username} has disconnected")
+        L.log(f"User {username} has disconnected")
         del self.players[username]
         del self.open_games[username]
         # This should not be necessary, but just in case
@@ -100,7 +105,7 @@ class GamesServer:
         try:
             await self.send_message_to_anon(self.players[username], msg_type, msg_data)
         except Exception as e:
-            print(f"Failed to send a message to {username}: {e}")
+            L.log_error(f"Failed to send a message to {username}: {e}")
             # Assume the player has disconnected
             del self.players[username]
 
@@ -142,22 +147,22 @@ class GamesServer:
 
                 self.open_games[player1] = game
                 self.open_games[player2] = game
-                print("New game created! Players:", player1, player2,
-                      "waiting for both players to be ready...")
-            except Exception as e:
+                L.log(f"New game created with `{player1}` and `{player2}`")
+                L.log("Waiting for both players to be ready...")
+            except Exception:
                 async with self.match_making_semaphore:
-                    print(f"Match failed because someone disconnected")
+                    L.log_error(f"Match failed because someone disconnected")
                     # Readd a player to the queue only if it is still connected
                     if player1 in self.players:
                         self.match_making_queue.append(player1)
                         self.waiting_for_match.add(player1)
-                        print(
-                            f"Readded {player1} because they are still connected")
+                        L.log(
+                            f"Re-added {player1} because it is still connected")
                     if player2 in self.players:
                         self.match_making_queue.append(player2)
                         self.waiting_for_match.add(player2)
-                        print(
-                            f"Readded {player2} because they are still connected")
+                        L.log(
+                            f"Re-added {player2} because it is still connected")
         else:
             # Send the player a message that they are waiting for a match
             await self.send_message_to_anon(ws, 'waiting', 'Waiting for a match...')
