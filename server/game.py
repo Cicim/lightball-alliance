@@ -102,31 +102,92 @@ class Player:
         }
 
 
-# To be overridden by websockets
+class Logger:
+    identifier: int
+    time: int
+
+    def __init__(self, identifier: int):
+        self.identifier = identifier
+        self.time = 0
+
+    def print_header(self):
+        print(f"[Game {self.identifier} - {self.time/1000:>7.2f}s]", end=" ")
+
+    def log(self, message: str):
+        self.print_header()
+
+        # Print just the message in blue
+        print(f"\033[92m{message}\033[0m")
+
+    def log_error(self, message: str):
+        print("\033[91m", end='')
+        self.print_header()
+
+        # Print the error message in red
+        print(f"ERROR: {message}\033[0m")
+
+    def log_broadcast(self, name: str, message: str, highlight: bool = True):
+        self.print_header()
+
+        # Split the message by line
+        lines = message.split('\n')
+        # Trim trailing empty lines
+        while len(lines) > 0 and lines[-1] == '':
+            lines.pop()
+
+        if highlight:
+            # Print the broadcast message in blue
+            print(f"Broadcast \033[94m{name}\033[0m:", end=' ')
+        else:
+            # Print the message in gray
+            print(f"\033[90mBroadcast {name}\033[0m:", end=' ')
+
+        # Print all the lines in gray
+        if not highlight:
+            print("\033[90m", end='')
+
+        if len(lines) > 1:
+            print()
+            for line in lines:
+                print(f"       {line}")
+        else:
+            print(message)
+
+        if not highlight:
+            print("\033[0m", end='')
+
+
 class GameBroadcasts:
     """This class is used to define the events and broadcasts that the game can send to the clients. 
     It is used to define the interface of the game, and to allow the game to send events and broadcasts
     to the clients without knowing the implementation of the clients."""
 
+    # Game id for the logs
+    logger: Logger
     # List of clients connected to the game
     clients: list[web.WebSocketResponse]
 
-    def __init__(self, clients: list[web.WebSocketResponse] = []):
+    def __init__(self, clients: list[web.WebSocketResponse] = [], logger: Logger = Logger(0)):
         self.clients = clients
+        self.logger = logger
 
     async def _broadcast(self, msg_type: str, msg_data: dict | str | int):
         """Send a message to all the clients."""
-        # Send all **in parallel** and wait for all to finish before continuing
-        await asyncio.gather(*[client.send_json({'type': msg_type, 'data': msg_data}) for client in self.clients])
+        try:
+            # Send all **in parallel** and wait for all to finish before continuing
+            await asyncio.gather(*[client.send_json({'type': msg_type, 'data': msg_data}) for client in self.clients])
+        except Exception as e:
+            self.logger.log_error(
+                f"Failed to broadcast to all clients: {e.__cause__}")
 
     # Broadcasts
     # Broadcast to all the players that the game has started with the list of players.
     async def game_started(self, players: list[Player]):
-        print("Broadcast: game_started")
+        message = ""
         for player in players:
-            print(
-                f" - Player {player.username:<16} {player.health} HP, position {player.position}")
-        print()
+            message += f" - Player {player.username:<16} {player.health} HP, position {player.position}\n"
+
+        self.logger.log_broadcast("game_started", message)
 
         await self._broadcast('game_started', {
             'players': [player.dict() for player in players]
@@ -134,20 +195,29 @@ class GameBroadcasts:
 
     # Game over broadcast with motivation
     async def game_over(self, motivation: str):
-        print(f"Broadcast: game_over {motivation}")
+        self.logger.log_broadcast("game_over", motivation)
 
-        await self._broadcast('game_over', motivation)
+        for client in self.clients:
+            # Game over is a special case, because if the game over is due to a player
+            # disconnecting, we don't want the broadcast to fail when targeting the
+            # disconnected transport. We just ignore the exception.
+            try:
+                await client.send_json({'type': 'game_over', 'data': motivation})
+            except:
+                pass
 
     # Event for time synchronization
+
     async def time_sync(self, time: int):
-        print(f"\nBroadcast: time_sync {time / 1000.0:.3f}s")
+        self.logger.log_broadcast(
+            "time_sync", f"{time / 1000.0:.3f}s", highlight=False)
 
         await self._broadcast('time_sync', time)
 
     # A new enemy has been added to the game
     async def enemy_added(self, enemy: Enemy):
-        print(
-            f"Broadcast: enemy_added {enemy.id} #{enemy.color:06X} {enemy.health} HP, position {enemy.get_position(0)}")
+        self.logger.log_broadcast(
+            "enemy_added", f"{enemy.id} #{enemy.color:06X}")
 
         await self._broadcast('enemy_added', {
             'id': enemy.id,
@@ -161,7 +231,8 @@ class GameBroadcasts:
 
     # An enemy has received damage
     async def enemy_damaged(self, enemy: Enemy, damage: int):
-        print(f"Broadcast: enemy_damaged {enemy.id} is down to {damage} HP")
+        self.logger.log_broadcast(
+            "enemy_damaged", f"{enemy.id} is down to {damage} HP")
 
         await self._broadcast('enemy_damaged', {
             'id': enemy.id,
@@ -170,13 +241,14 @@ class GameBroadcasts:
 
     # An enemy has been removed from the game
     async def enemy_removed(self, enemy: Enemy):
-        print(f"Broadcast: enemy_removed {enemy.id}")
+        self.logger.log_broadcast("enemy_removed", f"{enemy.id}")
 
         await self._broadcast('enemy_removed', enemy.id)
 
     # Player rotation has been updated
     async def player_rotation_updated(self, username: str, rotation: Vec3):
-        print(f"Broadcast: player_rotation_updated {username} {rotation}")
+        self.logger.log_broadcast(
+            "player_rotation_updated", f"{username} {rotation}", highlight=False)
 
         await self._broadcast('player_rotation_updated', {
             'username': username,
@@ -185,8 +257,8 @@ class GameBroadcasts:
 
     # Player score has been updated
     async def player_score_updated(self, username: str, score: int):
-        print(
-            f"Broadcast: player_score_updated {username}'s score updated to {score} pts")
+        self.logger.log_broadcast(
+            "player_score_updated", f"{username} {score} pts")
 
         await self._broadcast('player_score_updated', {
             'username': username,
@@ -195,8 +267,8 @@ class GameBroadcasts:
 
     # Player health has been updated
     async def player_damaged(self, username: str, health: int):
-        print(
-            f"Broadcast: player_damaged {username}'s health is now {health} HP")
+        self.logger.log_broadcast(
+            "player_damaged", f"{username} {health} HP")
 
         await self._broadcast('player_damaged', {
             'username': username,
@@ -217,6 +289,8 @@ class Game:
     # Players in the game
     players: dict[str, Player]
 
+    # Logger for the game
+    logger: Logger
     # Game broadcasts and events for communication with the clients
     broadcast: GameBroadcasts = GameBroadcasts()
     # Last enemy identifier
@@ -229,9 +303,12 @@ class Game:
 
     # A game can only be created with a list of players
     def __init__(self, players: list[str], clients: list[web.WebSocketResponse]):
+        # Create a game identifier for the logs, to differentiate the games
+        self.logger = Logger(random.randint(1000, 9999))
+
         self.enemies = {}
         self.players = {}
-        self.broadcast = GameBroadcasts(clients)
+        self.broadcast = GameBroadcasts(clients, self.logger)
 
         RADIUS = 4
 
@@ -291,7 +368,20 @@ class Game:
     async def update(self):
         """Update the game state and broadcast the changes to the clients."""
         if self.time >= self.duration:
-            await self.broadcast.game_over("Time is up!")
+            # Get the highest score
+            highest_score = max(
+                self.player_list, key=lambda player: player.score)
+            # Get the players with the highest score
+            winners = [
+                player for player in self.player_list if player.score == highest_score.score]
+
+            if len(winners) == 1:
+                await self.broadcast.game_over(
+                    f"{winners[0].username} has won with {winners[0].score} points!")
+            else:
+                await self.broadcast.game_over(
+                    f"The game ended in a draw with {winners[0].score} points!")
+
             return True
 
         # Spawn a new enemy every second
@@ -316,17 +406,23 @@ class Game:
                     await self.broadcast.enemy_removed(enemy)
 
         self.time += 50
+        # Update the logger time
+        self.logger.time = self.time
 
         return False
 
     async def run(self):
         """Run the game loop."""
-        await self.start()
-        while True:
-            stop = await self.update()
-            if stop:
-                break
-            await asyncio.sleep(0.05)
+        try:
+            await self.start()
+            while True:
+                stop = await self.update()
+                if stop:
+                    break
+                await asyncio.sleep(0.05)
+        except Exception as e:
+            self.logger.log_error(
+                f"Game terminated due to error: {e.__cause__}")
 
     async def player_take_damage(self, player: Player, damage: int) -> bool:
         """Applies damage to a player and broadcasts the change."""
@@ -341,9 +437,9 @@ class Game:
             return False
 
     # Event handlers
-    async def on_player_rotated(self, username: str, rotation: Vec3):
+    async def on_player_rotation_updated(self, username: str, rotation: Vec3):
         """Event handler for when a player has updated its rotation."""
-        print(f"\nEvent: player_rotated {username} moved to {rotation}")
+        # print(f"\nEvent: player_rotated {username} moved to {rotation}")
         player = self.players[username]
         player.rotation.copy(rotation)
 
@@ -351,10 +447,10 @@ class Game:
 
     async def on_enemy_shot(self, username: str, enemy_id: int):
         """Event handler for when a player has shot an enemy."""
-        print(f"\nEvent: enemy_shot {username} shot {enemy_id}")
+        self.logger.log(f"{username} shot {enemy_id}")
         player = self.players[username]
         if enemy_id not in self.enemies:
-            print(f" - Enemy {enemy_id} does not exist.")
+            self.logger.log_error(f"Enemy {enemy_id} does not exist!")
             return
         enemy = self.enemies[enemy_id]
 
@@ -370,24 +466,18 @@ class Game:
 
     async def on_player_disconnect(self, username: str):
         """Event handler for when a player has disconnected."""
-        print(f"\nEvent: player_disconnect {username}")
+        self.logger.log(f"{username} has disconnected")
         if username in self.players:
             del self.players[username]
-            print(f" - Player {username} has disconnected.")
-        else:
-            print(f" - Player {username} does not exist.")
 
         await self.broadcast.game_over(f"{username} has disconnected.")
 
     async def on_player_ready(self, username: str):
         """Event handler for when a player is ready to start the game."""
-        print(f"\nEvent: player_ready {username}")
+        self.logger.log(f"{username} is ready to start the game")
         if username in self.players:
             player = self.players[username]
             player.ready = True
-            print(f" - Player {username} is ready to start.")
-        else:
-            print(f" - Player {username} does not exist.")
 
         if all(player.ready for player in self.players.values()):
             asyncio.create_task(self.run())

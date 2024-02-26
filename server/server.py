@@ -61,16 +61,27 @@ class GamesServer:
                 if msg_type == 'player_ready':
                     await game.on_player_ready(username)
                 elif msg_type == 'player_rotation_updated':
-                    rotation = Vec3(msg_data['x'], msg_data['y'], msg_data['z'])
-                    await game.on_player_rotated(username, rotation)
+                    rotation = Vec3(
+                        msg_data['x'], msg_data['y'], msg_data['z'])
+                    await game.on_player_rotation_updated(username, rotation)
                 elif msg_type == 'enemy_shot':
                     id = msg_data['id']
                     await game.on_enemy_shot(username, id)
-
             except Exception as e:
                 print(e)
                 print(f"Received an invalid message from {username}: {msg}")
                 continue
+
+        # Once the message loop is over, the player has disconnected
+        print(f"User {username} has disconnected")
+        del self.players[username]
+        del self.open_games[username]
+        # This should not be necessary, but just in case
+        self.waiting_for_match.discard(username)
+
+        # If the game is still open, send the disconnection event
+        # to everyone else who is connected
+        await game.on_player_disconnect(username)
 
         return ws
 
@@ -152,4 +163,5 @@ class GamesServer:
             await self.send_message_to_anon(ws, 'waiting', 'Waiting for a match...')
 
 
-GamesServer(8080)
+if __name__ == "__main__":
+    GamesServer(8080)
