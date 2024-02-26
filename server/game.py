@@ -300,6 +300,9 @@ class Game:
     # Last enemy identifier
     last_enemy_id: int = 0
 
+    # If the game is over
+    is_over: bool = False
+
     @property
     def player_list(self): return list(self.players.values())
     @property
@@ -422,6 +425,7 @@ class Game:
             while True:
                 stop = await self.update()
                 if stop:
+                    self.is_over = True
                     break
                 await asyncio.sleep(0.05)
         except Exception as e:
@@ -474,6 +478,9 @@ class Game:
         if username in self.players:
             del self.players[username]
 
+        # If the game is already over, someone disconnecting is not a big deal
+        if self.is_over:
+            return
         await self.broadcast.game_over(f"{username} has disconnected.")
 
     async def on_player_ready(self, username: str):
