@@ -100,7 +100,7 @@ fun slerpQuaternions(q1: FloatArray, q2: FloatArray, t: Float): FloatArray {
   }
 
   // Calculate the angle between the quaternions
-  val theta0 = acos(dot).toFloat()
+  val theta0 = acos(dot)
   val theta = theta0 * t
 
   // Calculate the new quaternion

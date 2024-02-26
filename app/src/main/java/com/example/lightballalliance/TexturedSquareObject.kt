@@ -18,7 +18,7 @@ const val TEXTURE_STRIDE_2D = COORDS_PER_TEXTURE_2D * 4 // 4 bytes per vertex
 
 class TexturedSquareObject (
   private val context: Context,
-  private var aspectRatio: Float,
+  aspectRatio: Float,
   private val textureName: String,
   squareSize: Float = 0.2f,
   centerX: Float = 0.0f,
@@ -183,10 +183,6 @@ class TexturedSquareObject (
       GLES20.glShaderSource(shader, shaderCode)
       GLES20.glCompileShader(shader)
     }
-  }
-
-  fun setRatio(ratio: Float) {
-    this.aspectRatio = ratio
   }
 
   private val drawListBuffer = ByteBuffer

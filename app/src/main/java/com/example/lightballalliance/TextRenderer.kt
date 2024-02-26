@@ -13,7 +13,7 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 
 class TextRenderer (
-  private var aspectRatio: Float,
+  aspectRatio: Float,
   text: String,
   centerX: Float,
   centerY: Float
@@ -193,10 +193,6 @@ class TextRenderer (
       GLES20.glShaderSource(shader, shaderCode)
       GLES20.glCompileShader(shader)
     }
-  }
-
-  fun setRatio(ratio: Float) {
-    this.aspectRatio = ratio
   }
 
   private val drawListBuffer = ByteBuffer

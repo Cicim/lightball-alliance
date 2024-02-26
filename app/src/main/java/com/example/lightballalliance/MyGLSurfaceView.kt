@@ -228,12 +228,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     GLES20.glViewport(0, 0, width, height)
 
     val ratio: Float = width.toFloat() / height.toFloat()
-    shootButton.setRatio(ratio)
-    gunSight.setRatio(ratio)
-    playerHealthBar.setRatio(ratio)
-    allyHealthBar.setRatio(ratio)
-    playerText.setRatio(ratio)
-    allyText.setRatio(ratio)
 
     // this projection matrix is applied to object coordinates
     // in the onDrawFrame() method

@@ -11,7 +11,7 @@ import java.nio.FloatBuffer
 
 class HealthBarObject (
   private val context: Context,
-  private var aspectRatio: Float,
+  aspectRatio: Float,
   private val textureName: String,
   squareSize: Float = 0.03f,
   centerX: Float,
@@ -182,10 +182,6 @@ class HealthBarObject (
       GLES20.glShaderSource(shader, shaderCode)
       GLES20.glCompileShader(shader)
     }
-  }
-
-  fun setRatio(ratio: Float) {
-    this.aspectRatio = ratio
   }
 
   private val drawListBuffer = ByteBuffer

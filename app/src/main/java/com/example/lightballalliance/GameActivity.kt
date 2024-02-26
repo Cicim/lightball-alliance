@@ -1,7 +1,9 @@
 package com.example.lightballalliance
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -9,7 +11,6 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.view.MotionEvent
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.mutableStateOf
 import com.example.lightballalliance.data.ClientMessage
@@ -43,11 +44,11 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
   private var calibrationQuat = floatArrayOf(0.0f, 0.0f, 0.0f, 1.0f)
 
   private val isConnected = mutableStateOf(false)
-  private val orientationViewModel: OrientationViewModel by viewModels()
 
   private var timer: Timer = Timer()
   private val timerPeriod = 20L
 
+  @SuppressLint("SourceLockedOrientationActivity")
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
@@ -62,6 +63,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 
     // Send the player_ready message
     sendClientMessage(ClientMessage.Ready)
+
+    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
     // Start the timer to update the game state
     timer = timer("updateGameStateTimer",
