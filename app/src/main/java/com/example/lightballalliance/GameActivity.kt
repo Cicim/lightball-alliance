@@ -61,9 +61,6 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     gLView = MyGLSurfaceView(this)
     setContentView(gLView)
 
-    // Send the player_ready message
-    sendClientMessage(ClientMessage.Ready)
-
     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
     // Start the timer to update the game state
@@ -82,25 +79,35 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         val x = e.x
         val y = e.y
 
-        // Check if the player has touched the shoot button
-        if (x <= 0.6 * gLView.width && x >= 0.4 * gLView.width && y >= 0.8 * gLView.height) {
-          Log.d("GameActivity", ">>>Shoot button pressed")
-          game?.shoot()
-        }
+        // If the game is not started yet, check if the start button was pressed
+        if (game == null) {
+          // Send the player_ready message to the server
+          if (x <= 0.75 * gLView.width && x >= 0.25 * gLView.width &&
+            y >= 0.55 * gLView.height && y <= 0.8 * gLView.height) {
+            Log.d("GameActivity", ">>>Ready button pressed")
+            sendClientMessage(ClientMessage.Ready)
+          }
+        } else {
+          // Check if the player has touched the shoot button
+          if (x <= 0.6 * gLView.width && x >= 0.4 * gLView.width && y >= 0.8 * gLView.height) {
+            Log.d("GameActivity", ">>>Shoot button pressed")
+            game?.shoot()
+          }
 
-        // Else calibrate the sensors
-        else {
-          // Copy the current orientation angles to the calibration array
-          calibrationEuler = currentEuler.copyOf()
+          // Else calibrate the sensors
+          else {
+            // Copy the current orientation angles to the calibration array
+            calibrationEuler = currentEuler.copyOf()
 
-          // Store the conjugate of the quaternion to calibrate the sensors
-          calibrationQuat[0] = -currentQuat[0]
-          calibrationQuat[1] = -currentQuat[1]
-          calibrationQuat[2] = -currentQuat[2]
-          calibrationQuat[3] = currentQuat[3]
+            // Store the conjugate of the quaternion to calibrate the sensors
+            calibrationQuat[0] = -currentQuat[0]
+            calibrationQuat[1] = -currentQuat[1]
+            calibrationQuat[2] = -currentQuat[2]
+            calibrationQuat[3] = currentQuat[3]
 
-          // Recompute the orientation angles
-          recomputePlayerAngle()
+            // Recompute the orientation angles
+            recomputePlayerAngle()
+          }
         }
       }
     }

@@ -36,10 +36,15 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   // Rendered objects
   private lateinit var enemyObject: EnemyObject
+
   private lateinit var shootButton: TexturedSquareObject
   private lateinit var gunSight: TexturedSquareObject
+  private lateinit var readyButton: TexturedSquareObject
+  private lateinit var readyText: TexturedSquareObject
+
   private lateinit var playerHealthBar: HealthBarObject
   private lateinit var allyHealthBar: HealthBarObject
+
   private lateinit var playerText: TextRenderer
   private lateinit var allyText: TextRenderer
 
@@ -89,6 +94,11 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Initialize the gun sight object
     gunSight = TexturedSquareObject(context, aspectRatio,"gunSight_wh.png", 0.1f, 0f, 0f)
 
+    // Initialize the ready button object and its text
+    readyButton = TexturedSquareObject(context, aspectRatio, "readyButton.png", 0.5f, 0f, -0.3f)
+    // The aspect ratio of the ready text is 2.83:1
+    readyText = TexturedSquareObject(context, aspectRatio / 2.83f, "readyText.png", 0.3f, 0f, 0.3f)
+
     // Initialize the health bar objects (original aspect ratio of the image is 9:1)
     playerHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, -0.035f, -0.95f)
     allyHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, 0.035f, -0.95f)
@@ -99,62 +109,71 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   }
 
   override fun onDrawFrame(unused: GL10) {
-    // Only draw if the game handler is set
-    val game = this.game ?: return
-    cameraTurningLogic()
-
-    val scratch = FloatArray(16)
-
     // Redraw background color
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
-    val eye = game.getCameraEye()
-    val center = game.getCameraCenter()
+    // If the game is not started yet, draw the ready button
+    if (this.game == null) {
+      // Draw the ready button and its text
+      readyButton.draw()
+      readyText.draw()
+    } else {
+      // Otherwise draw the game interface
+      val game = this.game!!
+      cameraTurningLogic()
 
-    // Set the camera position (View matrix)
-    Matrix.setLookAtM(
-      viewMatrix, 0,
-      eye[0], eye[1], eye[2],
-      center[0], center[1], center[2],
-      0f, 1f, 0f)
+      val scratch = FloatArray(16)
 
-    // Calculate the projection and view transformation
-    Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+      val eye = game.getCameraEye()
+      val center = game.getCameraCenter()
 
-    // Draw the enemies
-    try {
-      game.getEnemies().forEach {
-        // Get the translation vector for the enemy
-        val (tx, ty, tz) = it.getPosition(game.getTime())
+      // Set the camera position (View matrix)
+      Matrix.setLookAtM(
+        viewMatrix, 0,
+        eye[0], eye[1], eye[2],
+        center[0], center[1], center[2],
+        0f, 1f, 0f
+      )
 
-        // Create a translation transformation
-        Matrix.setIdentityM(translateMatrix, 0)
-        Matrix.translateM(translateMatrix,0, tx, ty, tz)
+      // Calculate the projection and view transformation
+      Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
-        // Combine the translation matrix with the projection and camera view
-        Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+      // Draw the enemies
+      try {
+        game.getEnemies().forEach {
+          // Get the translation vector for the enemy
+          val (tx, ty, tz) = it.getPosition(game.getTime())
 
-        // Draw shape
-        enemyObject.draw(scratch, it.getColor())
+          // Create a translation transformation
+          Matrix.setIdentityM(translateMatrix, 0)
+          Matrix.translateM(translateMatrix, 0, tx, ty, tz)
+
+          // Combine the translation matrix with the projection and camera view
+          Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+
+          // Draw shape
+          enemyObject.draw(scratch, it.getColor())
+        }
+      } catch (e: Exception) {
+        Log.e("MyGLRenderer", "Error: ${e.message}")
       }
-    } catch (e: Exception) {
-      Log.e("MyGLRenderer", "Error: ${e.message}")
+
+      // Clear the depth buffer
+      GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
+
+      // Draw the shoot button
+      drawShootButton()
+
+      // Draw the gun sight
+      gunSight.draw()
+
+      // Draw the health bars
+      playerHealthBar.draw(game.getYourPlayer().getHealth())
+      allyHealthBar.draw(game.getAllyPlayer().getHealth())
+
+      // Draw the text strings
+      drawScores()
     }
-
-    // Clear the depth buffer
-    GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
-
-    drawShootButton()
-
-    // Draw the gun sight
-    gunSight.draw()
-
-    // Draw the health bars
-    playerHealthBar.draw(game.getYourPlayer().getHealth())
-    allyHealthBar.draw(game.getAllyPlayer().getHealth())
-
-    // Draw the text strings
-    drawScores()
   }
 
   private fun drawScores() {
