@@ -17,6 +17,7 @@ import com.example.lightballalliance.data.ClientMessage
 import com.example.lightballalliance.data.Enemy
 import com.example.lightballalliance.data.Game
 import com.example.lightballalliance.data.GameMessage
+import com.example.lightballalliance.data.GameOverReason
 import com.example.lightballalliance.data.sendClientMessage
 import java.util.Timer
 import kotlin.concurrent.timer
@@ -87,7 +88,18 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
             Log.d("GameActivity", ">>>Ready button pressed")
             sendClientMessage(ClientMessage.Ready)
           }
-        } else {
+        }
+        else if (game!!.isGameOver()) {
+          // Check if the player has touched the return button
+          if (y >= 0.6 * gLView.height && y <= 0.65 * gLView.height) {
+            Log.d("GameActivity", ">>>Return the main page pressed")
+
+            // Finish this activity and redirect to the main activity
+            WebSocketClient.disconnect()
+            finish()
+          }
+        }
+        else {
           // Check if the player has touched the shoot button
           if (x <= 0.6 * gLView.width && x >= 0.4 * gLView.width && y >= 0.8 * gLView.height) {
             Log.d("GameActivity", ">>>Shoot button pressed")
@@ -292,13 +304,33 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         game?.getPlayer(message.username)?.updateScore(message.score)
       }
       is GameMessage.GameOver -> {
-        Log.d("GameActivity", ">>>Game over")
+        val index = message.reason.indexOf(":")
+        val reason = message.reason.substring(0, index)
+        val username = message.reason.substring(index + 1)
+
+        when(reason) {
+          "won" -> {
+            Log.d("GameActivity", ">>>$username won the game")
+            game?.setGameOver(GameOverReason.Won(username))
+          }
+          "tied" -> {
+            Log.d("GameActivity", ">>>$username lost the game")
+            game?.setGameOver(GameOverReason.Tied)
+          }
+          "disconnect" -> {
+            Log.d("GameActivity", ">>>$username disconnected")
+            game?.setGameOver(GameOverReason.Disconnect(username))
+          }
+          "died" -> {
+            Log.d("GameActivity", ">>>$username lost the game")
+            game?.setGameOver(GameOverReason.Died(username))
+          }
+          else -> {
+            Log.d("GameActivity", ">>>Unknown message received")
+          }
+        }
 
         timer.cancel()
-
-        // Finish this activity and redirect to the main activity
-        WebSocketClient.disconnect()
-        finish()
       }
 
       else -> { }

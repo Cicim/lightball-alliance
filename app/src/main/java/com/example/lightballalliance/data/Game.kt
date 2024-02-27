@@ -14,6 +14,7 @@ class Game (
   private var players: MutableList<Player> = mutableListOf()
   private var enemies: HashMap<Int, Enemy> = hashMapOf()
   private var time: Int = 0
+  private var gameOverReason: GameOverReason? = null
 
   // Whether the last shoot was successful
   var lastShootResult: Boolean? = null
@@ -192,6 +193,11 @@ class Game (
     time += add
   }
 
+  // Set the game as over.
+  fun setGameOver(reason: GameOverReason) {
+    gameOverReason = reason
+  }
+
 
   /**
    * Getters
@@ -220,5 +226,15 @@ class Game (
   // Return the current time.
   fun getTime(): Int {
     return time
+  }
+
+  // Return whether the game is over.
+  fun isGameOver(): Boolean {
+    return gameOverReason != null
+  }
+
+  // Return the reason why the game is over.
+  fun getGameOverReason(): GameOverReason? {
+    return gameOverReason
   }
 }

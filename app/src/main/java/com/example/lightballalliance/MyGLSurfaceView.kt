@@ -6,6 +6,7 @@ import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import android.util.Log
 import com.example.lightballalliance.data.Game
+import com.example.lightballalliance.data.GameOverReason
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.sqrt
@@ -39,8 +40,17 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
   private lateinit var shootButton: TexturedSquareObject
   private lateinit var gunSight: TexturedSquareObject
+
   private lateinit var readyButton: TexturedSquareObject
   private lateinit var readyText: TexturedSquareObject
+
+  private lateinit var wonText: TexturedSquareObject
+  private lateinit var lostText: TexturedSquareObject
+  private lateinit var tiedText: TexturedSquareObject
+  private lateinit var youDiedText: TexturedSquareObject
+  private lateinit var allyDiedText: TexturedSquareObject
+  private lateinit var allyDisconnectedText: TexturedSquareObject
+  private lateinit var mainPageText: TexturedSquareObject
 
   private lateinit var playerHealthBar: HealthBarObject
   private lateinit var allyHealthBar: HealthBarObject
@@ -106,74 +116,116 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Initialize the text strings
     playerText = TextRenderer(aspectRatio, "You: 0", -0.315f, -0.9f)
     allyText = TextRenderer(aspectRatio, "Ally: 0", 0.315f, -0.9f)
+
+    // Initialize the end game text objects
+    // Original aspect ratio of the images is 2.91:1
+    wonText = TexturedSquareObject(context, aspectRatio / 2.91f, "wonText.png", 0.3f, 0f, 0.2f)
+    // Original aspect ratio of the images is 2.91:1
+    lostText = TexturedSquareObject(context, aspectRatio / 2.91f, "lostText.png", 0.3f, 0f, 0.2f)
+    // Original aspect ratio of the images is 2.91:1
+    tiedText = TexturedSquareObject(context, aspectRatio / 2.91f, "tiedText.png", 0.3f, 0f, 0.2f)
+    // Original aspect ratio of the images is 3.72:1
+    youDiedText = TexturedSquareObject(context, aspectRatio / 3.72f, "youDiedText.png", 0.22f, 0f, 0.2f)
+    // Original aspect ratio of the images is 4.01:1
+    allyDiedText = TexturedSquareObject(context, aspectRatio / 4.01f, "allyDiedText.png", 0.22f, 0f, 0.2f)
+    // Original aspect ratio of the images is 3.6:1
+    allyDisconnectedText = TexturedSquareObject(context, aspectRatio / 3.6f, "allyDisconnectedText.png", 0.22f, 0f, 0.2f)
+    // Original aspect ratio of the images is 10.69:1
+    mainPageText = TexturedSquareObject(context, aspectRatio / 10.69f, "mainPageText.png", 0.08f, 0f, -0.2f)
+  }
+
+
+  private fun drawReadyScreen() {
+    // Draw the ready button and its text
+    readyButton.draw()
+    readyText.draw()
+  }
+
+  private fun drawGameOverScreen() {
+    val game = this.game ?: return
+
+    // Draw the end game interface
+    when (val reason = game.getGameOverReason()!!) {
+      is GameOverReason.Won -> {
+        if (reason.username == game.getYourPlayer().getUsername()) wonText.draw()
+        else lostText.draw()
+      }
+      is GameOverReason.Tied -> tiedText.draw()
+      is GameOverReason.Died -> {
+        if (reason.username == game.getYourPlayer().getUsername()) youDiedText.draw()
+        else allyDiedText.draw()
+      }
+      is GameOverReason.Disconnect -> allyDisconnectedText.draw()
+    }
+    mainPageText.draw()
   }
 
   override fun onDrawFrame(unused: GL10) {
     // Redraw background color
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
 
-    // If the game is not started yet, draw the ready button
-    if (this.game == null) {
-      // Draw the ready button and its text
-      readyButton.draw()
-      readyText.draw()
-    } else {
-      // Otherwise draw the game interface
-      val game = this.game!!
-      cameraTurningLogic()
+    // If the game is not started yet, draw the ready screen
+    if (this.game == null) return drawReadyScreen()
 
-      val scratch = FloatArray(16)
+    val game = this.game!!
 
-      val eye = game.getCameraEye()
-      val center = game.getCameraCenter()
+    // If the game is over, draw the end game interface
+    if (game.isGameOver()) return drawGameOverScreen()
 
-      // Set the camera position (View matrix)
-      Matrix.setLookAtM(
-        viewMatrix, 0,
-        eye[0], eye[1], eye[2],
-        center[0], center[1], center[2],
-        0f, 1f, 0f
-      )
+    // Otherwise draw the game interface
+    cameraTurningLogic()
 
-      // Calculate the projection and view transformation
-      Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
+    val scratch = FloatArray(16)
 
-      // Draw the enemies
-      try {
-        game.getEnemies().forEach {
-          // Get the translation vector for the enemy
-          val (tx, ty, tz) = it.getPosition(game.getTime())
+    val eye = game.getCameraEye()
+    val center = game.getCameraCenter()
 
-          // Create a translation transformation
-          Matrix.setIdentityM(translateMatrix, 0)
-          Matrix.translateM(translateMatrix, 0, tx, ty, tz)
+    // Set the camera position (View matrix)
+    Matrix.setLookAtM(
+      viewMatrix, 0,
+      eye[0], eye[1], eye[2],
+      center[0], center[1], center[2],
+      0f, 1f, 0f
+    )
 
-          // Combine the translation matrix with the projection and camera view
-          Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+    // Calculate the projection and view transformation
+    Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
-          // Draw shape
-          enemyObject.draw(scratch, it.getColor())
-        }
-      } catch (e: Exception) {
-        Log.e("MyGLRenderer", "Error: ${e.message}")
+    // Draw the enemies
+    try {
+      game.getEnemies().forEach {
+        // Get the translation vector for the enemy
+        val (tx, ty, tz) = it.getPosition(game.getTime())
+
+        // Create a translation transformation
+        Matrix.setIdentityM(translateMatrix, 0)
+        Matrix.translateM(translateMatrix, 0, tx, ty, tz)
+
+        // Combine the translation matrix with the projection and camera view
+        Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
+
+        // Draw shape
+        enemyObject.draw(scratch, it.getColor())
       }
-
-      // Clear the depth buffer
-      GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
-
-      // Draw the shoot button
-      drawShootButton()
-
-      // Draw the gun sight
-      gunSight.draw()
-
-      // Draw the health bars
-      playerHealthBar.draw(game.getYourPlayer().getHealth())
-      allyHealthBar.draw(game.getAllyPlayer().getHealth())
-
-      // Draw the text strings
-      drawScores()
+    } catch (e: Exception) {
+      Log.e("MyGLRenderer", "Error: ${e.message}")
     }
+
+    // Clear the depth buffer
+    GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
+
+    // Draw the shoot button
+    drawShootButton()
+
+    // Draw the gun sight
+    gunSight.draw()
+
+    // Draw the health bars
+    playerHealthBar.draw(game.getYourPlayer().getHealth())
+    allyHealthBar.draw(game.getAllyPlayer().getHealth())
+
+    // Draw the text strings
+    drawScores()
   }
 
   private fun drawScores() {

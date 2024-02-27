@@ -384,10 +384,10 @@ class Game:
 
             if len(winners) == 1:
                 await self.broadcast.game_over(
-                    f"{winners[0].username} has won with {winners[0].score} points!")
+                    f"won:{winners[0].username}")
             else:
                 await self.broadcast.game_over(
-                    f"The game ended in a draw with {winners[0].score} points!")
+                    f"tied:")
 
             return True
 
@@ -438,7 +438,7 @@ class Game:
 
         if player.health <= 0:
             player.health = 0
-            await self.broadcast.game_over(f"{player.username} has been defeated!")
+            await self.broadcast.game_over(f"died:{player.username}")
             return True
         else:
             await self.broadcast.player_damaged(player.username, player.health)
@@ -481,7 +481,7 @@ class Game:
         # If the game is already over, someone disconnecting is not a big deal
         if self.is_over:
             return
-        await self.broadcast.game_over(f"{username} has disconnected.")
+        await self.broadcast.game_over(f"disconnect:{username}")
 
     async def on_player_ready(self, username: str):
         """Event handler for when a player is ready to start the game."""
