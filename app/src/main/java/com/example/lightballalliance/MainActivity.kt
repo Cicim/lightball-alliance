@@ -1,15 +1,19 @@
 package com.example.lightballalliance
 
+import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -20,11 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.lightballalliance.data.ClientMessage
 import com.example.lightballalliance.data.GameMessage
 import com.example.lightballalliance.data.sendClientMessage
 import com.example.lightballalliance.ui.theme.lightballallianceTheme
+import java.io.IOException
 
 class MainActivity : ComponentActivity(), WebSocketListener {
   private val isConnected = mutableStateOf(false)
@@ -42,9 +50,18 @@ class MainActivity : ComponentActivity(), WebSocketListener {
     setContent {
       lightballallianceTheme {
         // A surface container using the 'background' color from the theme
-        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(color = MaterialTheme.colorScheme.background) {
+          Row (
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+          ) {
+            Logo()
+          }
+
           Column (
-            Modifier.fillMaxSize(),
+            Modifier
+              .fillMaxSize()
+              .padding(top = 100.dp),
             verticalArrangement = Arrangement.Center
           ) {
             AddressTextBox(
@@ -188,3 +205,33 @@ fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit, is
     }
   }
 }
+
+@Composable
+fun Logo() {
+  // Load the image from the assets folder
+  val context = LocalContext.current
+  val bitmap = loadImageResource(context, "logo.png").resource.asAndroidBitmap()
+
+  // Display the loaded bitmap
+  Image(
+    bitmap = bitmap.asImageBitmap(),
+    contentDescription = "Lightball Alliance Logo",
+    alignment = Alignment.TopCenter,
+    modifier = Modifier
+      .padding(top = 20.dp, bottom = 20.dp)
+      .height(500.dp)
+  )
+}
+
+@Composable
+fun loadImageResource(context: Context, path: String): ImageAsset {
+  return runCatching {
+    val inputStream = context.assets.open(path)
+    val bitmap = BitmapFactory.decodeStream(inputStream)
+    ImageAsset(bitmap.asImageBitmap())
+  }.getOrElse {
+    throw IOException("Could not load image from assets at $path")
+  }
+}
+
+class ImageAsset(val resource: androidx.compose.ui.graphics.ImageBitmap)
