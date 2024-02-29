@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity(), WebSocketListener {
           Column (
             Modifier
               .fillMaxSize()
-              .padding(top = 100.dp),
+              .padding(top = 120.dp),
             verticalArrangement = Arrangement.Center
           ) {
             AddressTextBox(
@@ -244,7 +245,7 @@ fun ConnectButtons(
 fun Logo() {
   // Load the image from the assets folder
   val context = LocalContext.current
-  val bitmap = loadImageResource(context, "logo.png").resource.asAndroidBitmap()
+  val bitmap = loadImageResource(context, "extendedLogo.png").resource.asAndroidBitmap()
 
   // Display the loaded bitmap
   Image(
@@ -252,8 +253,9 @@ fun Logo() {
     contentDescription = "Lightball Alliance Logo",
     alignment = Alignment.TopCenter,
     modifier = Modifier
-      .padding(top = 20.dp, bottom = 20.dp)
-      .height(500.dp)
+      .padding(top = 20.dp)
+      .height(250.dp)
+      .width(250.dp)
   )
 }
 
