@@ -6,4 +6,5 @@ interface WebSocketListener {
   fun onConnected()
   fun onMessage(message: GameMessage)
   fun onDisconnected()
+  fun onError()
 }

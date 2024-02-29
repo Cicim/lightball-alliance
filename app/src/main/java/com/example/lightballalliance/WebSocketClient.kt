@@ -2,7 +2,6 @@ package com.example.lightballalliance
 
 import android.util.Log
 import androidx.compose.runtime.mutableStateOf
-import com.example.lightballalliance.data.GameMessage
 import com.example.lightballalliance.data.parseGameMessage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -72,6 +71,10 @@ object WebSocketClient {
         }
       } catch (e: Exception) {
         Log.d("WebSocketClient", ">>>Error: ${e.message}")
+
+        if (e.message?.contains("StandaloneCoroutine") == false)
+          mainListener?.onError()
+
         disconnect()
       }
     }
@@ -81,7 +84,6 @@ object WebSocketClient {
     if (isConnected()) {
       CoroutineScope(Dispatchers.IO).launch {
         webSocketSession?.send(Frame.Text(message))
-//        Log.d("WebSocketClient", ">Sent: $message")
       }
     }
   }

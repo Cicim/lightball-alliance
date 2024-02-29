@@ -246,9 +246,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
    * Connect to the server and send the orientation angles.
    */
 
-  override fun onConnected() {
-    // Nothing to do here
-  }
+  // This function is never called
+  override fun onConnected() {}
 
   override fun onMessage(message: GameMessage) {
 //    Log.d("GameActivity", ">Received: $message")
@@ -345,4 +344,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     intent = Intent(this, MainActivity::class.java)
     startActivity(intent)
   }
+
+  // This function is never called
+  override fun onError() {}
 }

@@ -24,9 +24,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.lightballalliance.data.ClientMessage
 import com.example.lightballalliance.data.GameMessage
@@ -36,8 +38,10 @@ import java.io.IOException
 
 class MainActivity : ComponentActivity(), WebSocketListener {
   private val isConnected = mutableStateOf(false)
+  private val isConnecting = mutableStateOf(false)
   private val address = mutableStateOf("ws://10.0.2.2:8080")
   private val nameConfirmed = mutableStateOf(false)
+  private val connectionError = mutableStateOf(false)
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -67,7 +71,8 @@ class MainActivity : ComponentActivity(), WebSocketListener {
             AddressTextBox(
               address = address.value,
               onAddressChange = { address.value = it },
-              isConnected = isConnected.value
+              isConnected = isConnected.value,
+              connectionError = connectionError.value
             )
 
             NameTextBox(
@@ -82,9 +87,14 @@ class MainActivity : ComponentActivity(), WebSocketListener {
             )
 
             ConnectButtons(
-              onClickConnect = { WebSocketClient.connect(address.value) },
+              onClickConnect = {
+                connectionError.value = false
+                isConnecting.value = true
+                WebSocketClient.connect(address.value)
+              },
               onClickDisconnect = { WebSocketClient.disconnect() },
-              isConnected = isConnected.value
+              isConnected = isConnected.value,
+              isConnecting = isConnecting.value
             )
           }
         }
@@ -109,20 +119,26 @@ class MainActivity : ComponentActivity(), WebSocketListener {
     // Handle connection
     Log.d("MainActivity", ">>>Connected!")
     isConnected.value = true
+    isConnecting.value = false
   }
 
   override fun onMessage(message: GameMessage) {
     // Handle received message
-//    Log.d("MainActivity", ">Received: $message")
-    if (message is GameMessage.AskName) {
+    if (message is GameMessage.AskName)
       WebSocketClient.playerName.value = ""
-    }
   }
 
   override fun onDisconnected() {
     // Handle disconnection
     Log.d("MainActivity", ">>>Disconnected!")
     isConnected.value = false
+    isConnecting.value = false
+  }
+
+  override fun onError() {
+    // Handle timeout
+    Log.d("MainActivity", ">>>Connection Error!")
+    connectionError.value = true
   }
 }
 
@@ -132,18 +148,28 @@ class MainActivity : ComponentActivity(), WebSocketListener {
  */
 
 @Composable
-fun AddressTextBox(address: String, onAddressChange: (String) -> Unit, isConnected: Boolean) {
+fun AddressTextBox(address: String, onAddressChange: (String) -> Unit, isConnected: Boolean, connectionError: Boolean) {
   // Create composable text box to enter the server address.
-  Row (
+  Column (
     Modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.Center
+    horizontalAlignment = Alignment.CenterHorizontally
   ) {
     OutlinedTextField(
       value = address,
       onValueChange = onAddressChange,
       label = { Text("Server Address (ws://host:port/path)") },
-      enabled = !isConnected
+      enabled = !isConnected,
+      isError = connectionError
     )
+
+    if (connectionError) {
+      Text(
+        text = "Cannot connect to the server.\nPlease check the address and try again.",
+        color = Color.Red,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.padding(10.dp),
+      )
+    }
   }
 }
 
@@ -183,17 +209,25 @@ fun NameTextBox(askName: String, onNameChange: (String) -> Unit, isConnected: Bo
 }
 
 @Composable
-fun ConnectButtons(onClickConnect: () -> Unit, onClickDisconnect: () -> Unit, isConnected: Boolean) {
+fun ConnectButtons(
+  onClickConnect: () -> Unit,
+  onClickDisconnect: () -> Unit,
+  isConnected: Boolean,
+  isConnecting: Boolean
+) {
   Row (
     Modifier.fillMaxWidth(),
     horizontalArrangement = Arrangement.Center
   ) {
     Button(
       onClick = onClickConnect,
-      enabled = !isConnected,
+      enabled = !isConnected && !isConnecting,
       modifier = Modifier.padding(2.dp)
     ) {
-      Text(text = "Connect")
+      if (isConnecting)
+        Text(text = "Connecting...")
+      else
+        Text(text = "Connect")
     }
 
     Button(
