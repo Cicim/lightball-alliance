@@ -107,8 +107,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
             game?.shoot()
           }
 
-          // Else calibrate the sensors
-          else {
+          // If the player touched the calibrate button
+          else if (x >= 0.87 * gLView.width && y <= 0.1 * gLView.height) {
             // Copy the current orientation angles to the calibration array
             calibrationEuler = currentEuler.copyOf()
 
@@ -300,8 +300,6 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           message.rotation.y.toDouble(),
           message.rotation.z.toDouble()
         )
-
-        Log.d("GameActivity", ">>>Player rotation updated");
       }
       is GameMessage.EnemyRemoved -> {
         game?.removeEnemy(message.id)

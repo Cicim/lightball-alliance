@@ -43,13 +43,21 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var enemyObject: EnemyObject
   private lateinit var allyObject: AllyObject
 
+  // HUD objects
   private lateinit var shootButton: TexturedSquareObject
   private lateinit var gunSight: TexturedSquareObject
+  private lateinit var calibrateButton: TexturedSquareObject
+  private lateinit var playerHealthBar: HealthBarObject
+  private lateinit var allyHealthBar: HealthBarObject
+  private lateinit var playerText: TextRenderer
+  private lateinit var allyText: TextRenderer
 
+  // Before game starts
   private lateinit var readyButton: TexturedSquareObject
   private lateinit var readyText: TexturedSquareObject
   private var isPlayerReady: Boolean = false
 
+  // End game objects
   private lateinit var wonText: TexturedSquareObject
   private lateinit var lostText: TexturedSquareObject
   private lateinit var tiedText: TexturedSquareObject
@@ -57,12 +65,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var allyDiedText: TexturedSquareObject
   private lateinit var allyDisconnectedText: TexturedSquareObject
   private lateinit var mainPageText: TexturedSquareObject
-
-  private lateinit var playerHealthBar: HealthBarObject
-  private lateinit var allyHealthBar: HealthBarObject
-
-  private lateinit var playerText: TextRenderer
-  private lateinit var allyText: TextRenderer
 
   private var game: Game? = null
 
@@ -110,26 +112,28 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Initialize the ally object
     allyObject = AllyObject()
 
-    // Initialize the shoot button object
+    /**
+     * Initialize the HUD objects
+     */
     shootButton = TexturedSquareObject(context, aspectRatio, "shootButton.png")
-
-    // Initialize the gun sight object
     gunSight = TexturedSquareObject(context, aspectRatio,"gunSight_wh.png", 0.1f, 0f, 0f)
+    calibrateButton = TexturedSquareObject(context, aspectRatio, "calibrateButton.png", 0.1f, 0.43f, 0.93f)
+    // Initialize the health bar objects (original aspect ratio of the image is 9:1)
+    playerHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, -0.035f, -0.95f)
+    allyHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, 0.035f, -0.95f)
+    playerText = TextRenderer(aspectRatio, "You: 0", -0.315f, -0.9f)
+    allyText = TextRenderer(aspectRatio, "Ally: 0", 0.315f, -0.9f)
 
-    // Initialize the ready button object and its text
+    /**
+     * Initialize the objects before the game starts
+     */
     readyButton = TexturedSquareObject(context, aspectRatio, "readyButton.png", 0.5f, 0f, -0.3f)
     // The aspect ratio of the ready text is 2.83:1
     readyText = TexturedSquareObject(context, aspectRatio / 2.83f, "readyText.png", 0.3f, 0f, 0.3f)
 
-    // Initialize the health bar objects (original aspect ratio of the image is 9:1)
-    playerHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, -0.035f, -0.95f)
-    allyHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, 0.035f, -0.95f)
-
-    // Initialize the text strings
-    playerText = TextRenderer(aspectRatio, "You: 0", -0.315f, -0.9f)
-    allyText = TextRenderer(aspectRatio, "Ally: 0", 0.315f, -0.9f)
-
-    // Initialize the end game text objects
+    /**
+     * Initialize the end game objects
+     */
     // Original aspect ratio of the images is 2.91:1
     wonText = TexturedSquareObject(context, aspectRatio / 2.91f, "wonText.png", 0.3f, 0f, 0.2f)
     // Original aspect ratio of the images is 2.91:1
@@ -205,23 +209,20 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
     // Draw stuff with a variable orientation and position
-    drawEnemies();
-    drawAlly();
+    drawEnemies()
+    drawAlly()
 
     // Clear the depth buffer
     GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
 
-    // Draw the shoot button
+    /**
+     * Draw the HUD objects
+     */
     drawShootButton()
-
-    // Draw the gun sight
     gunSight.draw()
-
-    // Draw the health bars
+    calibrateButton.draw()
     playerHealthBar.draw(game.getYourPlayer().getHealth())
     allyHealthBar.draw(game.getAllyPlayer().getHealth())
-
-    // Draw the text strings
     drawScores()
   }
 
