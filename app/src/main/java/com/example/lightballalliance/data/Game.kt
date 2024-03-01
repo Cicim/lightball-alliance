@@ -134,7 +134,7 @@ class Game (
       false
     }
 
-    // One shot every minute
+    // One shot every second
     shootTimer = 60
   }
 

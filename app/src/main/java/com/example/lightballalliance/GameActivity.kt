@@ -87,6 +87,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
             y >= 0.55 * gLView.height && y <= 0.8 * gLView.height) {
             Log.d("GameActivity", ">>>Ready button pressed")
             sendClientMessage(ClientMessage.Ready)
+            gLView.setPlayerReady()
           }
         }
         else if (game!!.isGameOver()) {

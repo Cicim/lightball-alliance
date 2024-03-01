@@ -32,6 +32,10 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   fun setGameHandler(game: Game) {
     renderer.setGameHandler(game)
   }
+
+  fun setPlayerReady() {
+    renderer.setPlayerReady()
+  }
 }
 
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
@@ -43,6 +47,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
   private lateinit var readyButton: TexturedSquareObject
   private lateinit var readyText: TexturedSquareObject
+  private var isPlayerReady: Boolean = false
 
   private lateinit var wonText: TexturedSquareObject
   private lateinit var lostText: TexturedSquareObject
@@ -80,6 +85,11 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
     this.game = game
+  }
+
+  // Function to set the player as ready
+  fun setPlayerReady() {
+    isPlayerReady = true
   }
 
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
@@ -137,8 +147,11 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
   private fun drawReadyScreen() {
     // Draw the ready button and its text
-    readyButton.draw()
     readyText.draw()
+    readyButton.draw(when (isPlayerReady) {
+      true -> floatArrayOf(0.0f, 1.0f, 0.0f, 1.0f)
+      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    })
   }
 
   private fun drawGameOverScreen() {
