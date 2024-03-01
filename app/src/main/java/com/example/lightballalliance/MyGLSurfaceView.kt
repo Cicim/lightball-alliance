@@ -41,6 +41,7 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   // Rendered objects
   private lateinit var enemyObject: EnemyObject
+  private lateinit var allyObject: AllyObject
 
   private lateinit var shootButton: TexturedSquareObject
   private lateinit var gunSight: TexturedSquareObject
@@ -76,7 +77,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val vPMatrix = FloatArray(16)
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
-  private val translateMatrix = FloatArray(16)
 
   // Last scores for the players
   private var lastYourScore = 0
@@ -107,6 +107,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     // Initialize the enemy object
     enemyObject = EnemyObject()
+    // Initialize the ally object
+    allyObject = AllyObject()
 
     // Initialize the shoot button object
     shootButton = TexturedSquareObject(context, aspectRatio, "shootButton.png")
@@ -188,8 +190,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Otherwise draw the game interface
     cameraTurningLogic()
 
-    val scratch = FloatArray(16)
-
     val eye = game.getCameraEye()
     val center = game.getCameraCenter()
 
@@ -204,25 +204,9 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Calculate the projection and view transformation
     Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0)
 
-    // Draw the enemies
-    try {
-      game.getEnemies().forEach {
-        // Get the translation vector for the enemy
-        val (tx, ty, tz) = it.getPosition(game.getTime())
-
-        // Create a translation transformation
-        Matrix.setIdentityM(translateMatrix, 0)
-        Matrix.translateM(translateMatrix, 0, tx, ty, tz)
-
-        // Combine the translation matrix with the projection and camera view
-        Matrix.multiplyMM(scratch, 0, vPMatrix, 0, translateMatrix, 0)
-
-        // Draw shape
-        enemyObject.draw(scratch, it.getColor())
-      }
-    } catch (e: Exception) {
-      Log.e("MyGLRenderer", "Error: ${e.message}")
-    }
+    // Draw stuff with a variable orientation and position
+    drawEnemies();
+    drawAlly();
 
     // Clear the depth buffer
     GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT)
@@ -239,6 +223,60 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     // Draw the text strings
     drawScores()
+  }
+
+  private fun drawEnemies() {
+    val game = this.game ?: return
+
+    val translateMatrix = FloatArray(16)
+    val positionMatrix = FloatArray(16)
+
+    // Draw the enemies
+    try {
+      game.getEnemies().forEach {
+        // Get the translation vector for the enemy
+        val (tx, ty, tz) = it.getPosition(game.getTime())
+
+        // Create a translation transformation
+        Matrix.setIdentityM(translateMatrix, 0)
+        Matrix.translateM(translateMatrix, 0, tx, ty, tz)
+
+        // Combine the translation matrix with the projection and camera view
+        Matrix.multiplyMM(positionMatrix, 0, vPMatrix, 0, translateMatrix, 0)
+
+        // Draw shape
+        enemyObject.draw(positionMatrix, it.getColor())
+      }
+    } catch (e: Exception) {
+      Log.e("MyGLRenderer", "Error: ${e.message}")
+    }
+  }
+
+  private fun drawAlly() {
+    val game = this.game ?: return
+
+    val translationM = FloatArray(16)
+    val rotationM = FloatArray(16)
+    val resultM = FloatArray(16)
+
+    // Get the translation vector for the ally
+    val (tx, ty, tz) = game.getAllyPlayer().getPosition()
+
+    // Create a translation transformation
+    Matrix.setIdentityM(translationM, 0)
+    Matrix.translateM(translationM, 0, tx, ty, tz)
+
+    // Create a rotation transformation
+    val (axis, angle) = game.getAllyRotation()
+    Matrix.setIdentityM(rotationM, 0)
+    Matrix.rotateM(rotationM, 0, angle, axis[0], axis[1], axis[2])
+
+    // Combine the translation and rotation matrices with the projection and camera view
+    Matrix.multiplyMM(resultM, 0, translationM, 0, rotationM, 0)
+    Matrix.multiplyMM(resultM, 0, vPMatrix, 0, resultM, 0)
+
+    // Draw shape
+    allyObject.draw(resultM)
   }
 
   private fun drawScores() {

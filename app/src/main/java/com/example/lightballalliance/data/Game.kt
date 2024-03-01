@@ -2,7 +2,10 @@ package com.example.lightballalliance.data
 
 import android.util.Log
 import com.example.lightballalliance.WebSocketClient
+import com.example.lightballalliance.eulerAnglesToQuaternion
+import com.example.lightballalliance.multiplyQuaternions
 import com.example.lightballalliance.quaternionToEulerAngles
+import kotlin.math.acos
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
@@ -38,18 +41,13 @@ class Game (
 
     // Initialize the variables
     for (data in playersData) {
-      val position = doubleArrayOf(data.position.x.toDouble(), data.position.y.toDouble(), data.position.z.toDouble())
-      val rotation = doubleArrayOf(data.rotation.x.toDouble(), data.rotation.y.toDouble(), data.rotation.z.toDouble())
-      val initialRotation = rotation.clone()
+      val position = floatArrayOf(data.position.x, data.position.y, data.position.z)
+      val initialRotation = doubleArrayOf(
+        data.rotation.x.toDouble(), data.rotation.y.toDouble(), data.rotation.z.toDouble())
 
-      val player = Player(data.username, position, rotation, initialRotation)
+      val player = Player(data.username, position, DoubleArray(3), initialRotation)
       players.add(player)
     }
-
-    // Create an enemy that stays at the origin.
-    val enemy = Enemy(999, 100, 0xFFFFFF, 0, 0f,
-      floatArrayOf(0f, 0f, 0f), floatArrayOf(0f, 0f, 0f))
-    addEnemy(enemy)
   }
 
   /**
@@ -137,6 +135,33 @@ class Game (
     // One shot every second
     shootTimer = 60
   }
+
+  /**
+   * Returns the current orientation of the ally in a form that can be
+   * used by the OpenGL renderer.
+   *
+   * That is, an axis of rotation and an angle of rotation.
+   */
+  fun getAllyRotation(): Pair<FloatArray, Float> {
+    val ally = getAllyPlayer()
+    // Convert the current ally rotation a quaternion
+    val (x, y, z) = ally.getRotation()
+    val q = eulerAnglesToQuaternion(x, y, z)
+    // Get the initial ally rotation to a quaternion
+    val (ix, iy, iz) = ally.getInitialRotation()
+    val iq = eulerAnglesToQuaternion(ix, iy, iz)
+
+    // Apply the initial rotation, then the current rotation
+    val rq = multiplyQuaternions(q, iq)
+
+    // Convert the quaternion to axis, angle, and return the angle
+    val angle = 2 * acos(rq[3])
+    val s = sin(angle / 2)
+    val axis = floatArrayOf(rq[0] / s, rq[1] / s, rq[2] / s)
+
+    return Pair(axis, angle)
+  }
+
 
   /**
    * Methods to manage the list of enemies.

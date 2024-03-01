@@ -3,7 +3,7 @@ package com.example.lightballalliance.data
 class Player (
   // Constructor
   private var username: String,
-  private var position: DoubleArray,
+  private var position: FloatArray,
   private var rotation: DoubleArray,
   private var initialRotation: DoubleArray
 ) {
@@ -21,7 +21,7 @@ class Player (
     rotation[2] = z
   }
 
-  fun updatePosition(x: Double, y: Double, z: Double) {
+  fun updatePosition(x: Float, y: Float, z: Float) {
     position[0] = x
     position[1] = y
     position[2] = z
@@ -56,7 +56,7 @@ class Player (
     return rotation
   }
 
-  fun getPosition(): DoubleArray {
+  fun getPosition(): FloatArray {
     return position
   }
 

@@ -268,9 +268,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           Log.d("PlayerPos", ">>>Initial position: ${player.getPosition().contentToString()}")
 
           game?.setCameraEye(
-            player.getPosition()[0].toFloat(),
-            player.getPosition()[1].toFloat(),
-            player.getPosition()[2].toFloat()
+            player.getPosition()[0],
+            player.getPosition()[1],
+            player.getPosition()[2]
           )
 
           // Get the initial orientation of the player
@@ -293,6 +293,15 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           floatArrayOf(message.target.x, message.target.y, message.target.z)
         )
         game?.addEnemy(enemy)
+      }
+      is GameMessage.PlayerRotationUpdated -> {
+        game?.getPlayer(message.username)?.updateRotation(
+          message.rotation.x.toDouble(),
+          message.rotation.y.toDouble(),
+          message.rotation.z.toDouble()
+        )
+
+        Log.d("GameActivity", ">>>Player rotation updated");
       }
       is GameMessage.EnemyRemoved -> {
         game?.removeEnemy(message.id)
