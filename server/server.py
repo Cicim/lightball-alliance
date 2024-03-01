@@ -37,7 +37,7 @@ class GamesServer:
 
             # Make sure the username is not already taken
             if username in self.players:
-                await self.send_message(username, 'ask_name', 'Username is already taken')
+                await self.send_message_to_anon(ws, 'ask_name', 'Username is already taken')
                 username = ''
 
         # Add the user to the list of players

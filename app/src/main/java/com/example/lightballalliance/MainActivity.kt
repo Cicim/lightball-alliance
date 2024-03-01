@@ -42,14 +42,13 @@ class MainActivity : ComponentActivity(), WebSocketListener {
   private val isConnecting = mutableStateOf(false)
   private val address = mutableStateOf("ws://10.0.2.2:8080")
   private val nameConfirmed = mutableStateOf(false)
+  private val nameAlreadyTaken = mutableStateOf(false)
   private val connectionError = mutableStateOf(false)
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    // Initialize the variables.
-    isConnected.value = false
-    nameConfirmed.value = false
+    // Initialize the listener for the WebSocket client
     WebSocketClient.setMainListener(this@MainActivity)
 
     setContent {
@@ -66,7 +65,7 @@ class MainActivity : ComponentActivity(), WebSocketListener {
           Column (
             Modifier
               .fillMaxSize()
-              .padding(top = 120.dp),
+              .padding(top = 200.dp),
             verticalArrangement = Arrangement.Center
           ) {
             AddressTextBox(
@@ -81,10 +80,10 @@ class MainActivity : ComponentActivity(), WebSocketListener {
               onNameChange = { WebSocketClient.playerName.value = it },
               isConnected = isConnected.value,
               confirmName = {
-                sendClientMessage(ClientMessage.Name(WebSocketClient.playerName.value))
                 nameConfirmed.value = true
-                navigateToGameActivity()
-              }
+                sendClientMessage(ClientMessage.Name(WebSocketClient.playerName.value))
+              },
+              nameAlreadyTaken = nameAlreadyTaken.value
             )
 
             ConnectButtons(
@@ -125,8 +124,25 @@ class MainActivity : ComponentActivity(), WebSocketListener {
 
   override fun onMessage(message: GameMessage) {
     // Handle received message
-    if (message is GameMessage.AskName)
+    if (message is GameMessage.AskName) {
       WebSocketClient.playerName.value = ""
+
+      // If the server asks again for the name, reset the nameConfirmed variable
+      // and ask the user to enter the name again.
+      if (nameConfirmed.value) {
+        nameConfirmed.value = false
+        nameAlreadyTaken.value = true
+      }
+
+      return
+    }
+
+    // If the username has been accepted, continue to the game activity.
+    if (message is GameMessage.Ready) {
+      nameAlreadyTaken.value = false
+      navigateToGameActivity()
+      return
+    }
   }
 
   override fun onDisconnected() {
@@ -175,9 +191,14 @@ fun AddressTextBox(address: String, onAddressChange: (String) -> Unit, isConnect
 }
 
 @Composable
-fun NameTextBox(askName: String, onNameChange: (String) -> Unit, isConnected: Boolean, confirmName: () -> Unit) {
+fun NameTextBox(
+  askName: String,
+  onNameChange: (String) -> Unit,
+  isConnected: Boolean, confirmName: () -> Unit,
+  nameAlreadyTaken: Boolean
+) {
   // Create composable text box to enter the name.
-  if (askName != "NO_NAME" && isConnected) {
+  if (askName != "UnUsAb13_Us3Rn4M3" && isConnected) {
     Column (
       Modifier.padding(10.dp)
     ) {
@@ -194,6 +215,17 @@ fun NameTextBox(askName: String, onNameChange: (String) -> Unit, isConnected: Bo
           value = askName,
           onValueChange = onNameChange,
           label = { Text("Name") },
+          isError = nameAlreadyTaken
+        )
+      }
+
+      if (nameAlreadyTaken) {
+        Text(
+          text = "This name is already taken.\nPlease choose another one.",
+          color = Color.Red,
+          modifier = Modifier
+            .align(Alignment.CenterHorizontally)
+            .padding(10.dp),
         )
       }
 

@@ -25,7 +25,7 @@ object WebSocketClient {
   private var gameListener: WebSocketListener? = null
   private var job: Job? = null
 
-  val playerName = mutableStateOf("NO_NAME")
+  val playerName = mutableStateOf("UnUsAb13_Us3Rn4M3")
 
   private lateinit var client: HttpClient
 
