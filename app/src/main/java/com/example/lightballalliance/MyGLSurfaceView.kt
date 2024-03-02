@@ -72,6 +72,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var allyDiedText: TexturedSquareObject
   private lateinit var allyDisconnectedText: TexturedSquareObject
   private lateinit var mainPageText: TexturedSquareObject
+  private lateinit var yourScoreText: TextRenderer
+  private lateinit var allyScoreText: TextRenderer
 
   private var game: Game? = null
 
@@ -163,7 +165,9 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Original aspect ratio of the images is 3.6:1
     allyDisconnectedText = TexturedSquareObject(context, aspectRatio / 3.6f, "allyDisconnectedText.png", 0.22f, 0f, 0.2f)
     // Original aspect ratio of the images is 10.69:1
-    mainPageText = TexturedSquareObject(context, aspectRatio / 10.69f, "mainPageText.png", 0.08f, 0f, -0.2f)
+    mainPageText = TexturedSquareObject(context, aspectRatio / 10.69f, "mainPageText.png", 0.08f, 0f, -0.4f)
+    yourScoreText = TextRenderer(aspectRatio, "You: 0", 0f, -0.1f)
+    allyScoreText = TextRenderer(aspectRatio, "Ally: 0", 0f, -0.2f)
   }
 
 
@@ -185,14 +189,28 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
   private fun drawGameOverScreen() {
     val game = this.game ?: return
+    yourScoreText.setText("You: ${game.getYourPlayer().getScore()}")
+    allyScoreText.setText("Ally: ${game.getAllyPlayer().getScore()}")
+
+
+    yourScoreText.draw()
+    allyScoreText.draw()
 
     // Draw the end game interface
     when (val reason = game.getGameOverReason()!!) {
       is GameOverReason.Won -> {
+//        yourScoreText.draw()
+//        allyScoreText.draw()
+
         if (reason.username == game.getYourPlayer().getUsername()) wonText.draw()
         else lostText.draw()
       }
-      is GameOverReason.Tied -> tiedText.draw()
+      is GameOverReason.Tied -> {
+//        yourScoreText.draw()
+//        allyScoreText.draw()
+
+        tiedText.draw()
+      }
       is GameOverReason.Died -> {
         if (reason.username == game.getYourPlayer().getUsername()) youDiedText.draw()
         else allyDiedText.draw()
