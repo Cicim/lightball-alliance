@@ -254,6 +254,10 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
 //    Log.d("GameActivity", ">Received: $message")
 
     when (message) {
+      is GameMessage.Matched -> {
+        // The player has been matched with another player
+        gLView.setGameMatched()
+      }
       is GameMessage.GameStarted -> {
         // Start the game
         Log.d("GameActivity", ">>>Game started")

@@ -36,6 +36,10 @@ class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   fun setPlayerReady() {
     renderer.setPlayerReady()
   }
+
+  fun setGameMatched() {
+    renderer.setGameMatched()
+  }
 }
 
 class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
@@ -55,7 +59,10 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   // Before game starts
   private lateinit var readyButton: TexturedSquareObject
   private lateinit var readyText: TexturedSquareObject
+  private lateinit var waitingForMatchText: TexturedSquareObject
+  private lateinit var waitingForAllyText: TexturedSquareObject
   private var isPlayerReady: Boolean = false
+  private var isGameMatched: Boolean = false
 
   // End game objects
   private lateinit var wonText: TexturedSquareObject
@@ -94,6 +101,11 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     isPlayerReady = true
   }
 
+  // Function to set the game as matched
+  fun setGameMatched() {
+    isGameMatched = true
+  }
+
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
     // Set the background frame color
     GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
@@ -127,9 +139,13 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     /**
      * Initialize the objects before the game starts
      */
-    readyButton = TexturedSquareObject(context, aspectRatio, "readyButton.png", 0.5f, 0f, -0.3f)
+    readyButton = TexturedSquareObject(context, aspectRatio, "readyButton.png", 0.5f, 0f, 0f)
     // The aspect ratio of the ready text is 2.83:1
-    readyText = TexturedSquareObject(context, aspectRatio / 2.83f, "readyText.png", 0.3f, 0f, 0.3f)
+    readyText = TexturedSquareObject(context, aspectRatio / 2.83f, "readyText.png", 0.3f, 0f, 0.6f)
+    // The aspect ratio of the waiting for match text is 11.67:1
+    waitingForMatchText = TexturedSquareObject(context, aspectRatio / 11.67f, "waitingForMatchText.png", 0.07f, 0f, -0.5f)
+    // The aspect ratio of the waiting for ally text is 5.3:1
+    waitingForAllyText = TexturedSquareObject(context, aspectRatio / 5.3f, "waitingForAllyText.png", 0.15f, 0f, -0.5f)
 
     /**
      * Initialize the end game objects
@@ -158,6 +174,13 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
       true -> floatArrayOf(0.0f, 1.0f, 0.0f, 1.0f)
       else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
     })
+
+    if (isGameMatched) {
+      if (isPlayerReady)
+        waitingForAllyText.draw()
+    }
+    else
+      waitingForMatchText.draw()
   }
 
   private fun drawGameOverScreen() {
