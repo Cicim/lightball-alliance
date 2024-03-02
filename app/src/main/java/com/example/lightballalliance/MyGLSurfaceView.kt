@@ -293,7 +293,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Create a rotation transformation
     val (axis, angle) = game.getAllyRotation()
     Matrix.setIdentityM(rotationM, 0)
-    Matrix.rotateM(rotationM, 0, angle, axis[0], axis[1], axis[2])
+    val a = angle / Math.PI.toFloat() * 180
+    Matrix.rotateM(rotationM, 0, a, axis[0], axis[1], axis[2])
 
     // Combine the translation and rotation matrices with the projection and camera view
     Matrix.multiplyMM(resultM, 0, translationM, 0, rotationM, 0)

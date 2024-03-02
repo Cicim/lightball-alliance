@@ -5,6 +5,7 @@ import com.example.lightballalliance.WebSocketClient
 import com.example.lightballalliance.eulerAnglesToQuaternion
 import com.example.lightballalliance.multiplyQuaternions
 import com.example.lightballalliance.quaternionToEulerAngles
+import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.cos
 import kotlin.math.pow
@@ -152,7 +153,18 @@ class Game (
     val iq = eulerAnglesToQuaternion(ix, iy, iz)
 
     // Apply the initial rotation, then the current rotation
-    val rq = multiplyQuaternions(q, iq)
+    val mq = multiplyQuaternions(iq, q)
+    val angles = quaternionToEulerAngles(mq)
+
+    // Change the angles to the OpenGL format
+    val pitch = angles[0]
+    val yaw = angles[1]
+
+    if (abs(pitch) + abs(yaw) <= 0.1) {
+      return Pair(floatArrayOf(0.0f, 1.0f, 0.0f), 0.0f)
+    }
+
+    val rq = eulerAnglesToQuaternion(0.0, -yaw, pitch)
 
     // Convert the quaternion to axis, angle, and return the angle
     val angle = 2 * acos(rq[3])

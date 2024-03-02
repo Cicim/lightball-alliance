@@ -8,7 +8,7 @@ import java.nio.FloatBuffer
 
 class AllyObject {
   val H = 1f
-  val W = 0.5f
+  val W = 0.125f
   val D = 0.5f
 
   private var cubeCoordinates = floatArrayOf(
@@ -87,7 +87,7 @@ class AllyObject {
     
     void main() {
       gl_Position = uMVPMatrix * vPosition;
-      normal = vNormal;
+      normal = uMVPMatrix * vNormal;
     }
     """.trimIndent()
 
@@ -97,12 +97,7 @@ class AllyObject {
     varying vec4 normal;
 
     void main() {
-      vec3 baseColor = vec3(0.1, 0.4, 1);
-      vec3 lightDirection = normalize(vec3(1, 1, 1));
-      float lightIntensity = max(dot(normalize(normal.xyz), lightDirection), 0.0);
-      lightIntensity = 0.3 + lightIntensity * 0.7;
-      
-      gl_FragColor = vec4(baseColor * lightIntensity, 1.0);
+      gl_FragColor = vec4(0.05, 0.3, 0.8, 1.0);
     }
     """.trimIndent()
 

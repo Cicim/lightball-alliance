@@ -299,11 +299,13 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         game?.addEnemy(enemy)
       }
       is GameMessage.PlayerRotationUpdated -> {
-        game?.getPlayer(message.username)?.updateRotation(
-          message.rotation.x.toDouble(),
-          message.rotation.y.toDouble(),
-          message.rotation.z.toDouble()
-        )
+        if (message.username != WebSocketClient.playerName.value) {
+          game?.getPlayer(message.username)?.updateRotation(
+            message.rotation.x.toDouble(),
+            message.rotation.y.toDouble(),
+            message.rotation.z.toDouble()
+          )
+        }
       }
       is GameMessage.EnemyRemoved -> {
         game?.removeEnemy(message.id)
