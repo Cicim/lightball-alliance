@@ -44,50 +44,12 @@ class AllyObject {
     -W, H, -D,
   )
 
-  private val cubeNormals = floatArrayOf(
-    // Front face
-    0f, 0f, 1f,
-    0f, 0f, 1f,
-    0f, 0f, 1f,
-    0f, 0f, 1f,
-    // Back face
-    0f, 0f, -1f,
-    0f, 0f, -1f,
-    0f, 0f, -1f,
-    0f, 0f, -1f,
-    // Top face
-    0f, 1f, 0f,
-    0f, 1f, 0f,
-    0f, 1f, 0f,
-    0f, 1f, 0f,
-    // Bottom face
-    0f, -1f, 0f,
-    0f, -1f, 0f,
-    0f, -1f, 0f,
-    0f, -1f, 0f,
-    // Right face
-    1f, 0f, 0f,
-    1f, 0f, 0f,
-    1f, 0f, 0f,
-    1f, 0f, 0f,
-    // Left face
-    -1f, 0f, 0f,
-    -1f, 0f, 0f,
-    -1f, 0f, 0f,
-    -1f, 0f, 0f,
-  )
-
   private val vertexShaderCode =
     """
     uniform mat4 uMVPMatrix;
     attribute vec4 vPosition;
-    attribute vec4 vNormal;
-    
-    varying vec4 normal;
-    
     void main() {
       gl_Position = uMVPMatrix * vPosition;
-      normal = uMVPMatrix * vNormal;
     }
     """.trimIndent()
 
@@ -104,7 +66,6 @@ class AllyObject {
   private var mProgram: Int
 
   private var positionHandle: Int = 0
-  private var normalHandle: Int = 0
   private var vPMatrixHandle: Int = 0 // Use to access and set the view transformation
 
   private val vertexCount: Int = cubeCoordinates.size / COORDS_PER_VERTEX_3D
@@ -149,21 +110,6 @@ class AllyObject {
       vertexBuffer
     )
 
-    // Get handle to vertex shader's vNormal member
-    normalHandle = GLES20.glGetAttribLocation(mProgram, "vNormal")
-    // Enable a handle to the triangle normals
-    GLES20.glEnableVertexAttribArray(normalHandle)
-
-    // Prepare the object's normal data
-    GLES20.glVertexAttribPointer(
-      normalHandle,
-      COORDS_PER_VERTEX_3D,
-      GLES20.GL_FLOAT,
-      false,
-      vertexStride,
-      normalBuffer
-    )
-
     // Pass the projection and view transformation to the shader
     GLES20.glUniformMatrix4fv(vPMatrixHandle, 1, false, mvpMatrix, 0)
 
@@ -171,7 +117,6 @@ class AllyObject {
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, vertexCount)
 
     // Disable vertex arrays
-    GLES20.glDisableVertexAttribArray(normalHandle)
     GLES20.glDisableVertexAttribArray(positionHandle)
   }
 
@@ -183,16 +128,6 @@ class AllyObject {
       order(ByteOrder.nativeOrder())
       asFloatBuffer().apply {
         put(cubeCoordinates)
-        position(0)
-      }
-    }
-
-  private val normalBuffer: FloatBuffer =
-    // (# of coordinate values * 4 bytes per float)
-    ByteBuffer.allocateDirect(cubeNormals.size * 4).run {
-      order(ByteOrder.nativeOrder())
-      asFloatBuffer().apply {
-        put(cubeNormals)
         position(0)
       }
     }
