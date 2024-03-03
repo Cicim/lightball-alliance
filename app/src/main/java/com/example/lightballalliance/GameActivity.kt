@@ -84,7 +84,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         if (game == null) {
           // Send the player_ready message to the server
           if (x <= 0.75 * gLView.width && x >= 0.25 * gLView.width &&
-            y >= 0.55 * gLView.height && y <= 0.8 * gLView.height) {
+            y >= 0.4 * gLView.height && y <= 0.65 * gLView.height) {
             Log.d("GameActivity", ">>>Ready button pressed")
             sendClientMessage(ClientMessage.Ready)
             gLView.setPlayerReady()
@@ -92,7 +92,7 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
         }
         else if (game!!.isGameOver()) {
           // Check if the player has touched the return button
-          if (y >= 0.6 * gLView.height && y <= 0.65 * gLView.height) {
+          if (y >= 0.7 * gLView.height && y <= 0.75 * gLView.height) {
             Log.d("GameActivity", ">>>Return the main page pressed")
 
             // Finish this activity and redirect to the main activity
