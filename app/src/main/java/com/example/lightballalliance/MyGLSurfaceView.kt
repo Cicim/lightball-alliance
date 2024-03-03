@@ -91,10 +91,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
 
-  // Last scores for the players
-  private var lastYourScore = 0
-  private var lastAllyScore = 0
-
   // Function to set the handler for the game
   fun setGameHandler(game: Game) {
     this.game = game
@@ -221,25 +217,27 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     }
 
     // Draw the scores
+    youText.setParams(-0.1f, -0.1f, 0.05f)
     youText.draw()
+    allyText.setParams(-0.1f, -0.2f, 0.06f)
     allyText.draw()
 
-    pointsText.setCenter(0.06f, -0.1f)
+    pointsText.setParams(0.06f, -0.1f)
     pointsText.draw()
-    pointsText.setCenter(0.06f, -0.2f)
+    pointsText.setParams(0.06f, -0.2f)
     pointsText.draw()
 
     val yourDigits = calculateDigits(game.getYourPlayer().getScore())
     var emptyDigits = 3 - yourDigits.size
     for (i in yourDigits.indices) {
-      digits[yourDigits[i]].setCenter(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.1f)
+      digits[yourDigits[i]].setParams(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.1f, 0.06f)
       digits[yourDigits[i]].draw()
     }
 
     val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
     emptyDigits = 3 - allyDigits.size
     for (i in allyDigits.indices) {
-      digits[allyDigits[i]].setCenter(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.2f)
+      digits[allyDigits[i]].setParams(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.2f, 0.06f)
       digits[allyDigits[i]].draw()
     }
 
@@ -367,12 +365,24 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private fun drawScores() {
     val game = this.game ?: return
 
-    if (lastYourScore != game.getYourPlayer().getScore()) {
-      lastYourScore = game.getYourPlayer().getScore()
+    youText.setParams(-0.14f, -0.9f, 0.04f)
+    youText.draw()
+
+    allyText.setParams(0.09f, -0.9f, 0.05f)
+    allyText.draw()
+
+    val yourDigits = calculateDigits(game.getYourPlayer().getScore())
+    var emptyDigits = 3 - yourDigits.size
+    for (i in yourDigits.indices) {
+      digits[yourDigits[i]].setParams(-0.4f + i * 0.05f + emptyDigits * 0.05f, -0.9f, 0.04f)
+      digits[yourDigits[i]].draw()
     }
 
-    if (lastAllyScore != game.getAllyPlayer().getScore()) {
-      lastAllyScore = game.getAllyPlayer().getScore()
+    val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
+    emptyDigits = 3 - allyDigits.size
+    for (i in allyDigits.indices) {
+      digits[allyDigits[i]].setParams(0.55f + i * 0.05f + emptyDigits * 0.05f, -0.9f, 0.04f)
+      digits[allyDigits[i]].draw()
     }
   }
 

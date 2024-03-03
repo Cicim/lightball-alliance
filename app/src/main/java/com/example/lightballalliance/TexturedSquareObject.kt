@@ -20,7 +20,7 @@ class TexturedSquareObject (
   private val context: Context,
   private val aspectRatio: Float,
   private val textureName: String,
-  private val squareSize: Float = 0.2f,
+  private var squareSize: Float = 0.2f,
   private var centerX: Float = 0.0f,
   private var centerY: Float = -0.9f
 ) {
@@ -99,18 +99,19 @@ class TexturedSquareObject (
     loadTexture()
   }
 
-  fun setCenter(x: Float, y: Float) {
-    centerX = x
-    centerY = y
+  fun setParams(centerX: Float, centerY: Float, squareSize: Float? = null) {
+    this.centerX = centerX
+    this.centerY = centerY
+    this.squareSize = squareSize ?: this.squareSize
 
-    squareCoords[0] = (centerX - squareSize / 2) / aspectRatio
-    squareCoords[1] = (centerY + squareSize / 2)
-    squareCoords[2] = (centerX - squareSize / 2) / aspectRatio
-    squareCoords[3] = (centerY - squareSize / 2)
-    squareCoords[4] = (centerX + squareSize / 2) / aspectRatio
-    squareCoords[5] = (centerY - squareSize / 2)
-    squareCoords[6] = (centerX + squareSize / 2) / aspectRatio
-    squareCoords[7] = (centerY + squareSize / 2)
+    squareCoords[0] = (this.centerX - this.squareSize / 2) / aspectRatio
+    squareCoords[1] = (this.centerY + this.squareSize / 2)
+    squareCoords[2] = (this.centerX - this.squareSize / 2) / aspectRatio
+    squareCoords[3] = (this.centerY - this.squareSize / 2)
+    squareCoords[4] = (this.centerX + this.squareSize / 2) / aspectRatio
+    squareCoords[5] = (this.centerY - this.squareSize / 2)
+    squareCoords[6] = (this.centerX + this.squareSize / 2) / aspectRatio
+    squareCoords[7] = (this.centerY + this.squareSize / 2)
 
     vertexBuffer = ByteBuffer.allocateDirect(squareCoords.size * 4).run {
       order(ByteOrder.nativeOrder())
