@@ -18,11 +18,11 @@ const val TEXTURE_STRIDE_2D = COORDS_PER_TEXTURE_2D * 4 // 4 bytes per vertex
 
 class TexturedSquareObject (
   private val context: Context,
-  aspectRatio: Float,
+  private val aspectRatio: Float,
   private val textureName: String,
-  squareSize: Float = 0.2f,
-  centerX: Float = 0.0f,
-  centerY: Float = -0.9f
+  private val squareSize: Float = 0.2f,
+  private var centerX: Float = 0.0f,
+  private var centerY: Float = -0.9f
 ) {
   // Coordinates of the square object
   private val squareCoords = floatArrayOf(
@@ -97,6 +97,28 @@ class TexturedSquareObject (
     }
 
     loadTexture()
+  }
+
+  fun setCenter(x: Float, y: Float) {
+    centerX = x
+    centerY = y
+
+    squareCoords[0] = (centerX - squareSize / 2) / aspectRatio
+    squareCoords[1] = (centerY + squareSize / 2)
+    squareCoords[2] = (centerX - squareSize / 2) / aspectRatio
+    squareCoords[3] = (centerY - squareSize / 2)
+    squareCoords[4] = (centerX + squareSize / 2) / aspectRatio
+    squareCoords[5] = (centerY - squareSize / 2)
+    squareCoords[6] = (centerX + squareSize / 2) / aspectRatio
+    squareCoords[7] = (centerY + squareSize / 2)
+
+    vertexBuffer = ByteBuffer.allocateDirect(squareCoords.size * 4).run {
+      order(ByteOrder.nativeOrder())
+      asFloatBuffer().apply {
+        put(squareCoords)
+        position(0)
+      }
+    }
   }
 
   fun draw(color: FloatArray = floatArrayOf(1f, 1f, 1f, 1f)) {

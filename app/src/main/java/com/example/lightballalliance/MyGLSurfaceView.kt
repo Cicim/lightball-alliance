@@ -53,8 +53,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var calibrateButton: TexturedSquareObject
   private lateinit var playerHealthBar: HealthBarObject
   private lateinit var allyHealthBar: HealthBarObject
-  private lateinit var playerText: TextRenderer
-  private lateinit var allyText: TextRenderer
 
   // Before game starts
   private lateinit var readyButton: TexturedSquareObject
@@ -72,10 +70,12 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var allyDiedText: TexturedSquareObject
   private lateinit var allyDisconnectedText: TexturedSquareObject
   private lateinit var mainPageText: TexturedSquareObject
-  private lateinit var yourScoreText: TextRenderer
-  private lateinit var allyScoreText: TextRenderer
-  private lateinit var yourPointsText: TextRenderer
-  private lateinit var allyPointsText: TextRenderer
+
+  // Numbers and texts
+  private lateinit var youText: TexturedSquareObject
+  private lateinit var allyText: TexturedSquareObject
+  private lateinit var pointsText: TexturedSquareObject
+  private lateinit var digits: Array<TexturedSquareObject>
 
   private var game: Game? = null
 
@@ -137,8 +137,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Initialize the health bar objects (original aspect ratio of the image is 9:1)
     playerHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, -0.035f, -0.95f)
     allyHealthBar = HealthBarObject(context, aspectRatio / 9f, "healthBar.png", 0.03f, 0.035f, -0.95f)
-    playerText = TextRenderer(aspectRatio, "You: 0", -0.315f, -0.9f)
-    allyText = TextRenderer(aspectRatio, "Ally: 0", 0.315f, -0.9f)
 
     /**
      * Initialize the objects before the game starts
@@ -154,24 +152,34 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     /**
      * Initialize the end game objects
      */
-    // Original aspect ratio of the images is 2.95:1
+    // Original aspect ratio of the image is 2.95:1
     wonText = TexturedSquareObject(context, aspectRatio / 2.95f, "wonText.png", 0.3f, 0f, 0.2f)
-    // Original aspect ratio of the images is 2.95:1
+    // Original aspect ratio of the image is 2.95:1
     lostText = TexturedSquareObject(context, aspectRatio / 2.95f, "lostText.png", 0.3f, 0f, 0.2f)
-    // Original aspect ratio of the images is 2.95:1
+    // Original aspect ratio of the image is 2.95:1
     tiedText = TexturedSquareObject(context, aspectRatio / 2.95f, "tiedText.png", 0.3f, 0f, 0.2f)
-    // Original aspect ratio of the images is 3.79:1
+    // Original aspect ratio of the image is 3.79:1
     youDiedText = TexturedSquareObject(context, aspectRatio / 3.79f, "youDiedText.png", 0.22f, 0f, 0.2f)
-    // Original aspect ratio of the images is 4.05:1
+    // Original aspect ratio of the image is 4.05:1
     allyDiedText = TexturedSquareObject(context, aspectRatio / 4.05f, "allyDiedText.png", 0.22f, 0f, 0.2f)
-    // Original aspect ratio of the images is 3.6:1
+    // Original aspect ratio of the image is 3.6:1
     allyDisconnectedText = TexturedSquareObject(context, aspectRatio / 3.6f, "allyDisconnectedText.png", 0.22f, 0f, 0.2f)
-    // Original aspect ratio of the images is 10.69:1
+    // Original aspect ratio of the image is 10.69:1
     mainPageText = TexturedSquareObject(context, aspectRatio / 10.69f, "mainPageText.png", 0.08f, 0f, -0.4f)
-    yourScoreText = TextRenderer(aspectRatio, "You: 0", -0.1f, -0.1f)
-    yourPointsText = TextRenderer(aspectRatio, "points", 0.15f, -0.1f)
-    allyScoreText = TextRenderer(aspectRatio, "Ally: 0", -0.1f, -0.2f)
-    allyPointsText = TextRenderer(aspectRatio, "points", 0.15f, -0.2f)
+
+    /**
+     * Initialize the numbers and texts
+     */
+    // Original aspect ratio of the image is 2.85:1
+    youText = TexturedSquareObject(context, aspectRatio / 2.85f, "youText.png", 0.05f, -0.1f, -0.1f)
+    // Original aspect ratio of the image is 2.69:1
+    allyText = TexturedSquareObject(context, aspectRatio / 2.69f, "allyText.png", 0.06f, -0.1f, -0.2f)
+    // Original aspect ratio of the image is 3.34:1
+    pointsText = TexturedSquareObject(context, aspectRatio / 3.34f, "pointsText.png", 0.07f, 0.06f, -0.1f)
+    // Original aspect ratio of the images is 0.66:1
+    digits = Array(10) { i ->
+      TexturedSquareObject(context, aspectRatio / 0.66f, "digit$i.png", 0.06f, 0f, -0.1f)
+    }
   }
 
 
@@ -193,27 +201,15 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
   private fun drawGameOverScreen() {
     val game = this.game ?: return
-    yourScoreText.setText("You: ${game.getYourPlayer().getScore()}")
-    allyScoreText.setText("Ally: ${game.getAllyPlayer().getScore()}")
 
-
-    yourScoreText.draw()
-    allyScoreText.draw()
-    yourPointsText.draw()
-    allyPointsText.draw()
-
-    // Draw the end game interface
+    // Draw the end game reason
     when (val reason = game.getGameOverReason()!!) {
       is GameOverReason.Won -> {
-//        yourScoreText.draw()
-//        allyScoreText.draw()
 
         if (reason.username == game.getYourPlayer().getUsername()) wonText.draw()
         else lostText.draw()
       }
       is GameOverReason.Tied -> {
-//        yourScoreText.draw()
-//        allyScoreText.draw()
 
         tiedText.draw()
       }
@@ -223,7 +219,47 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
       }
       is GameOverReason.Disconnect -> allyDisconnectedText.draw()
     }
+
+    // Draw the scores
+    youText.draw()
+    allyText.draw()
+
+    pointsText.setCenter(0.06f, -0.1f)
+    pointsText.draw()
+    pointsText.setCenter(0.06f, -0.2f)
+    pointsText.draw()
+
+    val yourDigits = calculateDigits(game.getYourPlayer().getScore())
+    var emptyDigits = 3 - yourDigits.size
+    for (i in yourDigits.indices) {
+      digits[yourDigits[i]].setCenter(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.1f)
+      digits[yourDigits[i]].draw()
+    }
+
+    val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
+    emptyDigits = 3 - allyDigits.size
+    for (i in allyDigits.indices) {
+      digits[allyDigits[i]].setCenter(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.2f)
+      digits[allyDigits[i]].draw()
+    }
+
+    // Draw the text (button) to go back to the main page
     mainPageText.draw()
+  }
+
+  // Function to calculate the digits of a number
+  private fun calculateDigits(score: Int): List<Int> {
+    val digits = mutableListOf<Int>()
+    var n = score
+
+    if (n == 0) return listOf(0)
+
+    while (n > 0) {
+      digits.add(n % 10)
+      n /= 10
+    }
+
+    return digits.reversed()
   }
 
   override fun onDrawFrame(unused: GL10) {
@@ -332,17 +368,12 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     val game = this.game ?: return
 
     if (lastYourScore != game.getYourPlayer().getScore()) {
-      playerText.setText("You: ${game.getYourPlayer().getScore()}")
       lastYourScore = game.getYourPlayer().getScore()
     }
 
     if (lastAllyScore != game.getAllyPlayer().getScore()) {
-      allyText.setText("Ally: ${game.getAllyPlayer().getScore()}")
       lastAllyScore = game.getAllyPlayer().getScore()
     }
-
-    playerText.draw(floatArrayOf(0.75f, 0.75f, 1f, 1f))
-    allyText.draw(floatArrayOf(0.75f, 1f, 0.75f, 1f))
   }
 
   private fun cameraTurningLogic() {
