@@ -154,16 +154,16 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     /**
      * Initialize the end game objects
      */
-    // Original aspect ratio of the images is 2.91:1
-    wonText = TexturedSquareObject(context, aspectRatio / 2.91f, "wonText.png", 0.3f, 0f, 0.2f)
-    // Original aspect ratio of the images is 2.91:1
-    lostText = TexturedSquareObject(context, aspectRatio / 2.91f, "lostText.png", 0.3f, 0f, 0.2f)
-    // Original aspect ratio of the images is 2.91:1
-    tiedText = TexturedSquareObject(context, aspectRatio / 2.91f, "tiedText.png", 0.3f, 0f, 0.2f)
-    // Original aspect ratio of the images is 3.72:1
-    youDiedText = TexturedSquareObject(context, aspectRatio / 3.72f, "youDiedText.png", 0.22f, 0f, 0.2f)
-    // Original aspect ratio of the images is 4.01:1
-    allyDiedText = TexturedSquareObject(context, aspectRatio / 4.01f, "allyDiedText.png", 0.22f, 0f, 0.2f)
+    // Original aspect ratio of the images is 2.95:1
+    wonText = TexturedSquareObject(context, aspectRatio / 2.95f, "wonText.png", 0.3f, 0f, 0.2f)
+    // Original aspect ratio of the images is 2.95:1
+    lostText = TexturedSquareObject(context, aspectRatio / 2.95f, "lostText.png", 0.3f, 0f, 0.2f)
+    // Original aspect ratio of the images is 2.95:1
+    tiedText = TexturedSquareObject(context, aspectRatio / 2.95f, "tiedText.png", 0.3f, 0f, 0.2f)
+    // Original aspect ratio of the images is 3.79:1
+    youDiedText = TexturedSquareObject(context, aspectRatio / 3.79f, "youDiedText.png", 0.22f, 0f, 0.2f)
+    // Original aspect ratio of the images is 4.05:1
+    allyDiedText = TexturedSquareObject(context, aspectRatio / 4.05f, "allyDiedText.png", 0.22f, 0f, 0.2f)
     // Original aspect ratio of the images is 3.6:1
     allyDisconnectedText = TexturedSquareObject(context, aspectRatio / 3.6f, "allyDisconnectedText.png", 0.22f, 0f, 0.2f)
     // Original aspect ratio of the images is 10.69:1
