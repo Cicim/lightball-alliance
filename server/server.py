@@ -32,8 +32,11 @@ class GamesServer:
         username = ''
         while username == '':
             # Wait for the user to send a username
-            # FIXME TypeError: Received message 8:0 is not WSMsgType.TEXT
-            username = await ws.receive_str()
+            try:
+                username = await ws.receive_str()
+            except:
+                L.log_error(f"Socket disconnected because it send the wrong message instead of the username")
+                return ws
 
             # Make sure the username is not already taken
             if username in self.players:

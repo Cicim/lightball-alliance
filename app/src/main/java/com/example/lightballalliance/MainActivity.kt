@@ -102,9 +102,9 @@ class MainActivity : ComponentActivity(), WebSocketListener {
     }
   }
 
+  // This function is called when the user confirms the name.
   private fun navigateToGameActivity() {
     // Navigate to the game activity.
-    // This function is called when the user confirms the name.
     val intent = Intent(this, GameActivity::class.java)
     startActivity(intent)
   }
@@ -156,6 +156,20 @@ class MainActivity : ComponentActivity(), WebSocketListener {
     // Handle timeout
     Log.d("MainActivity", ">>>Connection Error!")
     connectionError.value = true
+  }
+
+  override fun onResume() {
+    super.onResume()
+
+    // Clear everything
+    isConnecting.value = false
+    nameConfirmed.value = false
+    connectionError.value = false
+    nameAlreadyTaken.value = false
+    isConnecting.value = false
+    // The address and username should stay the same for when you want to reconnect.
+
+    Log.d("MainActivity", ">>>Resumed!")
   }
 }
 

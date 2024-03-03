@@ -2,7 +2,6 @@ package com.example.lightballalliance
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -95,8 +94,9 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
           if (y >= 0.7 * gLView.height && y <= 0.75 * gLView.height) {
             Log.d("GameActivity", ">>>Return the main page pressed")
 
-            // Finish this activity and redirect to the main activity
+            // Disconnect the WebSocket client
             WebSocketClient.disconnect()
+            // Finish this activity to redirect to the main activity
             finish()
           }
         }
@@ -355,8 +355,8 @@ class GameActivity : AppCompatActivity(), SensorEventListener, WebSocketListener
     Log.d("GameActivity", ">>>Disconnected")
     isConnected.value = false
 
-    intent = Intent(this, MainActivity::class.java)
-    startActivity(intent)
+    // Go back to the main activity
+    finish()
   }
 
   // This function is never called
