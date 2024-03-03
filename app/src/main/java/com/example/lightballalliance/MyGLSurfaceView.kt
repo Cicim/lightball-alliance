@@ -74,6 +74,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private lateinit var mainPageText: TexturedSquareObject
   private lateinit var yourScoreText: TextRenderer
   private lateinit var allyScoreText: TextRenderer
+  private lateinit var yourPointsText: TextRenderer
+  private lateinit var allyPointsText: TextRenderer
 
   private var game: Game? = null
 
@@ -166,8 +168,10 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     allyDisconnectedText = TexturedSquareObject(context, aspectRatio / 3.6f, "allyDisconnectedText.png", 0.22f, 0f, 0.2f)
     // Original aspect ratio of the images is 10.69:1
     mainPageText = TexturedSquareObject(context, aspectRatio / 10.69f, "mainPageText.png", 0.08f, 0f, -0.4f)
-    yourScoreText = TextRenderer(aspectRatio, "You: 0", 0f, -0.1f)
-    allyScoreText = TextRenderer(aspectRatio, "Ally: 0", 0f, -0.2f)
+    yourScoreText = TextRenderer(aspectRatio, "You: 0", -0.1f, -0.1f)
+    yourPointsText = TextRenderer(aspectRatio, "points", 0.15f, -0.1f)
+    allyScoreText = TextRenderer(aspectRatio, "Ally: 0", -0.1f, -0.2f)
+    allyPointsText = TextRenderer(aspectRatio, "points", 0.15f, -0.2f)
   }
 
 
@@ -195,6 +199,8 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
 
     yourScoreText.draw()
     allyScoreText.draw()
+    yourPointsText.draw()
+    allyPointsText.draw()
 
     // Draw the end game interface
     when (val reason = game.getGameOverReason()!!) {
