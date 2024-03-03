@@ -177,13 +177,6 @@ class HealthBarObject (
     textureId = textureHandles[0]
   }
 
-  private fun loadShader(type: Int, shaderCode: String): Int {
-    return GLES20.glCreateShader(type).also { shader ->
-      GLES20.glShaderSource(shader, shaderCode)
-      GLES20.glCompileShader(shader)
-    }
-  }
-
   private val drawListBuffer = ByteBuffer
     .allocateDirect(squareCoords.size * 2)
     .run {

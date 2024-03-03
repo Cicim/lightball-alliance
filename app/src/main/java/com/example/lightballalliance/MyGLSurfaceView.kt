@@ -12,6 +12,8 @@ import javax.microedition.khronos.opengles.GL10
 import kotlin.math.sqrt
 
 const val CAMERA_INTERPOLATION_TIME = 10
+val YOUR_TEXT_COLOR = floatArrayOf(0.75f, 0.75f, 1f, 1f)
+val ALLY_TEXT_COLOR = floatArrayOf(0.75f, 1f, 0.75f, 1f)
 
 class MyGLSurfaceView(context: Context) : GLSurfaceView(context) {
   private val renderer: MyGLRenderer
@@ -91,20 +93,25 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
 
-  // Function to set the handler for the game
+  /**
+   * Setters
+   */
+
   fun setGameHandler(game: Game) {
     this.game = game
   }
 
-  // Function to set the player as ready
   fun setPlayerReady() {
     isPlayerReady = true
   }
 
-  // Function to set the game as matched
   fun setGameMatched() {
     isGameMatched = true
   }
+
+  /**
+   * OpenGL ES 2.0 functions
+   */
 
   override fun onSurfaceCreated(unused: GL10, config: EGLConfig) {
     // Set the background frame color
@@ -178,88 +185,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     }
   }
 
-
-  private fun drawReadyScreen() {
-    // Draw the ready button and its text
-    readyText.draw()
-    readyButton.draw(when (isPlayerReady) {
-      true -> floatArrayOf(0.0f, 1.0f, 0.0f, 1.0f)
-      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
-    })
-
-    if (isGameMatched) {
-      if (isPlayerReady)
-        waitingForAllyText.draw()
-    }
-    else
-      waitingForMatchText.draw()
-  }
-
-  private fun drawGameOverScreen() {
-    val game = this.game ?: return
-
-    // Draw the end game reason
-    when (val reason = game.getGameOverReason()!!) {
-      is GameOverReason.Won -> {
-
-        if (reason.username == game.getYourPlayer().getUsername()) wonText.draw()
-        else lostText.draw()
-      }
-      is GameOverReason.Tied -> {
-
-        tiedText.draw()
-      }
-      is GameOverReason.Died -> {
-        if (reason.username == game.getYourPlayer().getUsername()) youDiedText.draw()
-        else allyDiedText.draw()
-      }
-      is GameOverReason.Disconnect -> allyDisconnectedText.draw()
-    }
-
-    // Draw the scores
-    youText.setParams(-0.1f, -0.1f, 0.05f)
-    youText.draw()
-    allyText.setParams(-0.1f, -0.2f, 0.06f)
-    allyText.draw()
-
-    pointsText.setParams(0.06f, -0.1f)
-    pointsText.draw()
-    pointsText.setParams(0.06f, -0.2f)
-    pointsText.draw()
-
-    val yourDigits = calculateDigits(game.getYourPlayer().getScore())
-    var emptyDigits = 3 - yourDigits.size
-    for (i in yourDigits.indices) {
-      digits[yourDigits[i]].setParams(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.1f, 0.06f)
-      digits[yourDigits[i]].draw()
-    }
-
-    val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
-    emptyDigits = 3 - allyDigits.size
-    for (i in allyDigits.indices) {
-      digits[allyDigits[i]].setParams(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.2f, 0.06f)
-      digits[allyDigits[i]].draw()
-    }
-
-    // Draw the text (button) to go back to the main page
-    mainPageText.draw()
-  }
-
-  // Function to calculate the digits of a number
-  private fun calculateDigits(score: Int): List<Int> {
-    val digits = mutableListOf<Int>()
-    var n = score
-
-    if (n == 0) return listOf(0)
-
-    while (n > 0) {
-      digits.add(n % 10)
-      n /= 10
-    }
-
-    return digits.reversed()
-  }
-
   override fun onDrawFrame(unused: GL10) {
     // Redraw background color
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
@@ -306,6 +231,137 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     allyHealthBar.draw(game.getAllyPlayer().getHealth())
     drawScores()
   }
+
+  override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {
+    GLES20.glViewport(0, 0, width, height)
+
+    val ratio: Float = width.toFloat() / height.toFloat()
+
+    // this projection matrix is applied to object coordinates
+    // in the onDrawFrame() method
+    Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1f, 1f, 1f, 12f)
+  }
+
+
+  /**
+   * Screen drawing helpers
+   */
+
+  private fun drawReadyScreen() {
+    // Draw the ready button and its text
+    readyText.draw()
+    readyButton.draw(when (isPlayerReady) {
+      true -> floatArrayOf(0.0f, 1.0f, 0.0f, 1.0f)
+      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    })
+
+    if (isGameMatched) {
+      if (isPlayerReady)
+        waitingForAllyText.draw()
+    }
+    else
+      waitingForMatchText.draw()
+  }
+
+  private fun drawScores() {
+    val game = this.game ?: return
+
+    youText.setParams(-0.14f, -0.9f, 0.04f)
+    youText.draw(YOUR_TEXT_COLOR)
+
+    allyText.setParams(0.09f, -0.9f, 0.05f)
+    allyText.draw(ALLY_TEXT_COLOR)
+
+    val yourDigits = calculateDigits(game.getYourPlayer().getScore())
+    var emptyDigits = 3 - yourDigits.size
+    for (i in yourDigits.indices) {
+      digits[yourDigits[i]].setParams(-0.4f + i * 0.05f + emptyDigits * 0.05f, -0.9f, 0.04f)
+      digits[yourDigits[i]].draw(YOUR_TEXT_COLOR)
+    }
+
+    val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
+    emptyDigits = 3 - allyDigits.size
+    for (i in allyDigits.indices) {
+      digits[allyDigits[i]].setParams(0.55f + i * 0.05f + emptyDigits * 0.05f, -0.9f, 0.04f)
+      digits[allyDigits[i]].draw(ALLY_TEXT_COLOR)
+    }
+  }
+
+  private fun drawShootButton() {
+    val game = this.game ?: return
+
+    // Update the shooting timeout
+    if (game.shootTimer > 0) {
+      game.shootTimer -= 1
+    } else {
+      game.lastShootResult = null
+    }
+
+    // Compute the animation of the shoot button
+    var t = game.shootTimer.toFloat() / 120f
+    t = sqrt(t / 2)
+
+    // Draw the shoot button
+    shootButton.draw(when (game.lastShootResult) {
+      true -> floatArrayOf(1.0f - t, 1.0f, 1.0f - t, 1.0f)
+      false -> floatArrayOf(1.0f, 1.0f - t, 1.0f - t, 1.0f)
+      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
+    })
+  }
+
+  private fun drawGameOverScreen() {
+    val game = this.game ?: return
+
+    // Draw the end game reason
+    when (val reason = game.getGameOverReason()!!) {
+      is GameOverReason.Won -> {
+
+        if (reason.username == game.getYourPlayer().getUsername()) wonText.draw()
+        else lostText.draw()
+      }
+      is GameOverReason.Tied -> {
+
+        tiedText.draw()
+      }
+      is GameOverReason.Died -> {
+        if (reason.username == game.getYourPlayer().getUsername()) youDiedText.draw()
+        else allyDiedText.draw()
+      }
+      is GameOverReason.Disconnect -> allyDisconnectedText.draw()
+    }
+
+    // Draw the scores
+    youText.setParams(-0.1f, -0.1f, 0.05f)
+    youText.draw(YOUR_TEXT_COLOR)
+    allyText.setParams(-0.1f, -0.2f, 0.06f)
+    allyText.draw(ALLY_TEXT_COLOR)
+
+    pointsText.setParams(0.06f, -0.1f)
+    pointsText.draw(YOUR_TEXT_COLOR)
+    pointsText.setParams(0.06f, -0.2f)
+    pointsText.draw(ALLY_TEXT_COLOR)
+
+    val yourDigits = calculateDigits(game.getYourPlayer().getScore())
+    var emptyDigits = 3 - yourDigits.size
+    for (i in yourDigits.indices) {
+      digits[yourDigits[i]].setParams(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.1f, 0.06f)
+      digits[yourDigits[i]].draw(YOUR_TEXT_COLOR)
+    }
+
+    val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
+    emptyDigits = 3 - allyDigits.size
+    for (i in allyDigits.indices) {
+      digits[allyDigits[i]].setParams(-0.15f + i * 0.08f + emptyDigits * 0.08f, -0.2f, 0.06f)
+      digits[allyDigits[i]].draw(ALLY_TEXT_COLOR)
+    }
+
+    // Draw the text (button) to go back to the main page
+    mainPageText.draw()
+  }
+
+  /**
+   * Game object drawing helpers
+   */
 
   private fun drawEnemies() {
     val game = this.game ?: return
@@ -362,28 +418,23 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     allyObject.draw(resultM)
   }
 
-  private fun drawScores() {
-    val game = this.game ?: return
+  /**
+   * Helper functions
+   */
 
-    youText.setParams(-0.14f, -0.9f, 0.04f)
-    youText.draw()
+  // Function to calculate the digits of a number
+  private fun calculateDigits(score: Int): List<Int> {
+    val digits = mutableListOf<Int>()
+    var n = score
 
-    allyText.setParams(0.09f, -0.9f, 0.05f)
-    allyText.draw()
+    if (n == 0) return listOf(0)
 
-    val yourDigits = calculateDigits(game.getYourPlayer().getScore())
-    var emptyDigits = 3 - yourDigits.size
-    for (i in yourDigits.indices) {
-      digits[yourDigits[i]].setParams(-0.4f + i * 0.05f + emptyDigits * 0.05f, -0.9f, 0.04f)
-      digits[yourDigits[i]].draw()
+    while (n > 0) {
+      digits.add(n % 10)
+      n /= 10
     }
 
-    val allyDigits = calculateDigits(game.getAllyPlayer().getScore())
-    emptyDigits = 3 - allyDigits.size
-    for (i in allyDigits.indices) {
-      digits[allyDigits[i]].setParams(0.55f + i * 0.05f + emptyDigits * 0.05f, -0.9f, 0.04f)
-      digits[allyDigits[i]].draw()
-    }
+    return digits.reversed()
   }
 
   private fun cameraTurningLogic() {
@@ -412,38 +463,6 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
         orientationTimer = CAMERA_INTERPOLATION_TIME
       }
     }
-  }
-
-  private fun drawShootButton() {
-    val game = this.game ?: return
-
-    // Update the shooting timeout
-    if (game.shootTimer > 0) {
-      game.shootTimer -= 1
-    } else {
-      game.lastShootResult = null
-    }
-
-    // Compute the animation of the shoot button
-    var t = game.shootTimer.toFloat() / 120f
-    t = sqrt(t / 2)
-
-    // Draw the shoot button
-    shootButton.draw(when (game.lastShootResult) {
-      true -> floatArrayOf(1.0f - t, 1.0f, 1.0f - t, 1.0f)
-      false -> floatArrayOf(1.0f, 1.0f - t, 1.0f - t, 1.0f)
-      else -> floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f)
-    })
-  }
-
-  override fun onSurfaceChanged(unused: GL10, width: Int, height: Int) {
-    GLES20.glViewport(0, 0, width, height)
-
-    val ratio: Float = width.toFloat() / height.toFloat()
-
-    // this projection matrix is applied to object coordinates
-    // in the onDrawFrame() method
-    Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1f, 1f, 1f, 12f)
   }
 }
 
