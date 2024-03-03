@@ -93,6 +93,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   private val projectionMatrix = FloatArray(16)
   private val viewMatrix = FloatArray(16)
 
+
   /**
    * Setters
    */
@@ -108,6 +109,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
   fun setGameMatched() {
     isGameMatched = true
   }
+
 
   /**
    * OpenGL ES 2.0 functions
@@ -359,6 +361,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     mainPageText.draw()
   }
 
+
   /**
    * Game object drawing helpers
    */
@@ -417,6 +420,7 @@ class MyGLRenderer (private val context: Context) : GLSurfaceView.Renderer {
     // Draw shape
     allyObject.draw(resultM)
   }
+
 
   /**
    * Helper functions
