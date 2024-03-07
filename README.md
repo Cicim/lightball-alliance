@@ -12,7 +12,7 @@ It consists of a small shooting game in which two allies are matched to fight ba
 - Provide a username and confirm.
 - You will then be matched with another player.
 - When you press the "Ready" button, the game will start as soon as the other player is ready too.
-- The game consists of pointing at the enemies and shooting them by tapping the "Shoot" button. Shooting has a cooldown of one second. The game ends after two minutes and the player with the highest score wins. If any player disconnects or loses all its lives, the game ends immediately for both players.
+- The game consists of pointing at the enemies and shooting them by tapping the "Shoot" button. Shooting has a cooldown of one second. The game ends after two minutes and the player with the highest score wins. If any player disconnects or loses all its health, the game ends immediately for both players.
 - You always have access to a calibration button, which will reset the rotation of the device to the current position. This is useful if you are playing while lying down or in a non-standard position.
 - Once the game ends, you will be able to see the final score and the winner, or if it's a tie.
 
@@ -33,7 +33,7 @@ It consists of a small shooting game in which two allies are matched to fight ba
     > The game is rendered using OpenGL ES 2.0, which allows for better performance and more complex graphics (beautiful cubes and spheres, for example).
 
 - Sensor reading for the device's rotation.
-    > The game uses the game rotation vector sensor to detect the device's rotation and use it to aim at the enemies.
+    > The game uses the game rotation vector sensor to detect the device's rotation and uses it to aim at the enemies.
 
 - Device rotation calibration and interpolation for a better gaming experience on devices with lower sampling rates using SLERP.
     > The game allows you to calibrate the rotation of the device to the current position, and uses SLERP to interpolate between the current and the previous rotation to avoid sudden changes in the aiming direction.
